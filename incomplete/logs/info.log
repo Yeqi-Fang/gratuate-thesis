@@ -1,0 +1,4 @@
+2024-12-25 19:08:57 [INFO] root - === Starting Main Script ===
+2024-12-25 19:08:57 [INFO] root - Created dataset with 200 samples.
+2024-12-25 19:08:57 [INFO] root - Train size: 160, Test size: 40
+2024-12-25 19:08:57 [INFO] root - Using device: cuda

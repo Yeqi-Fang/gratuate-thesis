@@ -1,0 +1,9 @@
+2024-12-25 21:49:32 [INFO] root - === Starting Main Script ===
+2024-12-25 21:49:32 [INFO] root - Run directory: train_runs\20241225_214932
+2024-12-25 21:49:32 [INFO] root - Command-line args: {'data_mode': 'on_the_fly', 'dataset_folder': 'my_dataset', 'num_samples': 200, 'img_size': 128, 'epochs': 20, 'lr': 0.001, 'alpha': 0.7, 'batch_size': 32, 'save_interval': 5}
+2024-12-25 21:49:32 [INFO] root - Generating on-the-fly dataset (no prior saving).
+2024-12-25 21:49:32 [INFO] root - Train subset: 160, Test subset: 40
+2024-12-25 21:49:32 [INFO] root - Train size: 160, Test size: 40
+2024-12-25 21:49:32 [INFO] root - Using device: cuda
+2024-12-25 21:49:51 [INFO] root - Epoch[1/20] Train Loss: 334147.91890, Test Loss: 355.25923
+2024-12-25 21:50:09 [INFO] root - Epoch[2/20] Train Loss: 529.53272, Test Loss: 748.20508

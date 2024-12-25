@@ -1,0 +1,6 @@
+2024-12-25 21:47:16 [INFO] root - === Starting Main Script ===
+2024-12-25 21:47:16 [INFO] root - Run directory: train_runs\20241225_214716
+2024-12-25 21:47:16 [INFO] root - Command-line args: {'data_mode': 'on_the_fly', 'dataset_folder': 'my_dataset', 'num_samples': 200, 'img_size': 128, 'epochs': 20, 'lr': 0.001, 'alpha': 0.7, 'batch_size': 32, 'save_interval': 5}
+2024-12-25 21:47:16 [INFO] root - Generating on-the-fly dataset (no prior saving).
+2024-12-25 21:47:16 [INFO] root - Train subset: 160, Test subset: 40
+2024-12-25 21:47:16 [INFO] root - Train size: 160, Test size: 40

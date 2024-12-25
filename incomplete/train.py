@@ -29,6 +29,7 @@ def train_model(
     epochs=5,
     lr=1e-3,
     alpha=0.5,
+    device=None,
     save_interval=5,
     run_dir="."
 ):

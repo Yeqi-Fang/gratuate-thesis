@@ -152,6 +152,7 @@ def main():
         epochs=args.epochs,
         lr=args.lr,
         alpha=args.alpha,
+        device='cuda' if torch.cuda.is_available() else "cpu",
         save_interval=args.save_interval,
         run_dir=run_dir
     )

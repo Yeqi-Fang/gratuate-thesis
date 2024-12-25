@@ -1,0 +1,6 @@
+2024-12-25 19:41:47 [INFO] root - === Starting Main Script ===
+2024-12-25 19:41:47 [INFO] root - Run directory: train_runs\20241225_194147
+2024-12-25 19:41:47 [INFO] root - CLI Options: pre_generate_data=False
+2024-12-25 19:41:47 [INFO] root - Created dataset with 200 samples
+2024-12-25 19:41:47 [INFO] root - Train size: 160, Test size: 40
+2024-12-25 19:41:47 [INFO] root - Using device: cuda

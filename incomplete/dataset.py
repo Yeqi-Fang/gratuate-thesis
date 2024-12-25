@@ -1,6 +1,8 @@
 # dataset.py
 import numpy as np
 import torch
+import os
+import matplotlib.pyplot as plt
 from torch.utils.data import Dataset
 from skimage.draw import disk, ellipse
 from skimage.transform import radon
@@ -50,9 +52,13 @@ def create_incomplete_sinogram(image, angles=None, missing_row_start=40, missing
 
 class SinogramDataset(Dataset):
     """
-    PyTorch Dataset for generating random phantoms and sinograms on-the-fly.
+    Modified to handle two modes:
+      1) On-the-fly generation (old style).
+      2) Pre-generated data loaded from a list (new style).
     """
-    def __init__(self, size=128, num_samples=1000, missing_row_start=40, missing_row_end=60):
+    def __init__(self, size=128, num_samples=1000,
+                 missing_row_start=40, missing_row_end=60,
+                 pre_generated_data=None):
         super().__init__()
         self.size = size
         self.num_samples = num_samples
@@ -60,23 +66,35 @@ class SinogramDataset(Dataset):
         self.missing_row_end = missing_row_end
         self.angles = np.linspace(0., 180., self.size, endpoint=False)
 
+        # new parameter: pre_generated_data
+        # if not None, it's a list of (incomplete_sino, complete_sino) arrays
+        self.pre_generated_data = pre_generated_data
+
     def __len__(self):
+        # if we have pre_generated_data, len is len of that list
+        if self.pre_generated_data is not None:
+            return len(self.pre_generated_data)
         return self.num_samples
-    
+
     def __getitem__(self, idx):
+        # 1) If we have pre-generated data, just load it
+        if self.pre_generated_data is not None:
+            incomplete_sino_arr, complete_sino_arr = self.pre_generated_data[idx]
+            incomplete_sino_t = torch.tensor(incomplete_sino_arr, dtype=torch.float32).unsqueeze(0)
+            complete_sino_t = torch.tensor(complete_sino_arr, dtype=torch.float32).unsqueeze(0)
+            return incomplete_sino_t, complete_sino_t
+
+        # 2) Otherwise, do random generation (old style)
         phantom = generate_random_phantom(self.size)
         complete_sino, incomplete_sino = create_incomplete_sinogram(
-            phantom,
+            phantom, 
             angles=self.angles,
-            missing_row_start=self.missing_row_start,
+            missing_row_start=self.missing_row_start, 
             missing_row_end=self.missing_row_end
         )
-        
-        # Convert to [1, H, W] PyTorch tensors
         complete_sino_t = torch.tensor(complete_sino, dtype=torch.float32).unsqueeze(0)
         incomplete_sino_t = torch.tensor(incomplete_sino, dtype=torch.float32).unsqueeze(0)
         return incomplete_sino_t, complete_sino_t
-
 
 def split_train_test(dataset, train_ratio=0.8):
     """

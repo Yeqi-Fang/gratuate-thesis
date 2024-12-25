@@ -1,0 +1,15 @@
+2024-12-25 19:19:31 [INFO] root - === Starting Main Script ===
+2024-12-25 19:19:31 [INFO] root - Run directory: train_runs\20241225_191931
+2024-12-25 19:19:31 [INFO] root - Created dataset with 200 samples
+2024-12-25 19:19:31 [INFO] root - Train size: 160, Test size: 40
+2024-12-25 19:19:31 [INFO] root - Using device: cuda
+2024-12-25 19:19:49 [INFO] root - Epoch [1/20]  Train Loss: 7676750.08632  Test Loss: 197.51231
+2024-12-25 19:20:05 [INFO] root - Epoch [2/20]  Train Loss: 1174.23462  Test Loss: 390.66257
+2024-12-25 19:20:25 [INFO] root - Epoch [3/20]  Train Loss: 635.63066  Test Loss: 538.19676
+2024-12-25 19:20:45 [INFO] root - Epoch [4/20]  Train Loss: 561.74212  Test Loss: 604.72064
+2024-12-25 19:21:02 [INFO] root - Epoch [5/20]  Train Loss: 633.30015  Test Loss: 765.83081
+2024-12-25 19:21:02 [INFO] root - [Checkpoint] Saved model to: train_runs\20241225_191931\model_epoch_5.pth
+2024-12-25 19:21:19 [INFO] root - Epoch [6/20]  Train Loss: 597.54421  Test Loss: 490.91411
+2024-12-25 19:21:36 [INFO] root - Epoch [7/20]  Train Loss: 534.34268  Test Loss: 543.19705
+2024-12-25 19:21:53 [INFO] root - Epoch [8/20]  Train Loss: 586.89005  Test Loss: 684.87045
+2024-12-25 19:22:11 [INFO] root - Epoch [9/20]  Train Loss: 531.45613  Test Loss: 492.22591

@@ -1,0 +1,35 @@
+2024-12-25 19:42:03 [INFO] root - === Starting Main Script ===
+2024-12-25 19:42:03 [INFO] root - Run directory: train_runs\20241225_194203
+2024-12-25 19:42:03 [INFO] root - CLI Options: pre_generate_data=True
+2024-12-25 19:42:03 [INFO] root - Pre-generating data for training...
+2024-12-25 19:42:41 [INFO] root - Pre-generated 200 samples saved under train_runs\20241225_194203/pre_generated_images
+2024-12-25 19:42:41 [INFO] root - Created dataset with 200 samples
+2024-12-25 19:42:41 [INFO] root - Train size: 160, Test size: 40
+2024-12-25 19:42:41 [INFO] root - Using device: cuda
+2024-12-25 19:42:45 [INFO] root - Epoch [1/20]  Train Loss: 89437.11114  Test Loss: 587.37985
+2024-12-25 19:42:47 [INFO] root - Epoch [2/20]  Train Loss: 637.34617  Test Loss: 768.62991
+2024-12-25 19:42:49 [INFO] root - Epoch [3/20]  Train Loss: 712.88795  Test Loss: 783.82562
+2024-12-25 19:42:51 [INFO] root - Epoch [4/20]  Train Loss: 714.77145  Test Loss: 767.36295
+2024-12-25 19:42:53 [INFO] root - Epoch [5/20]  Train Loss: 683.47806  Test Loss: 694.16739
+2024-12-25 19:42:53 [INFO] root - [Checkpoint] Saved model to: train_runs\20241225_194203\model_epoch_5.pth
+2024-12-25 19:42:55 [INFO] root - Epoch [6/20]  Train Loss: 576.83763  Test Loss: 502.45830
+2024-12-25 19:42:57 [INFO] root - Epoch [7/20]  Train Loss: 355.09435  Test Loss: 140.87978
+2024-12-25 19:42:59 [INFO] root - Epoch [8/20]  Train Loss: 96.03012  Test Loss: 88.06519
+2024-12-25 19:43:00 [INFO] root - Epoch [9/20]  Train Loss: 69.13972  Test Loss: 31.92792
+2024-12-25 19:43:02 [INFO] root - Epoch [10/20]  Train Loss: 21.28801  Test Loss: 16.95516
+2024-12-25 19:43:02 [INFO] root - [Checkpoint] Saved model to: train_runs\20241225_194203\model_epoch_10.pth
+2024-12-25 19:43:04 [INFO] root - Epoch [11/20]  Train Loss: 15.75035  Test Loss: 12.81714
+2024-12-25 19:43:06 [INFO] root - Epoch [12/20]  Train Loss: 12.67008  Test Loss: 12.18775
+2024-12-25 19:43:08 [INFO] root - Epoch [13/20]  Train Loss: 10.83989  Test Loss: 10.25154
+2024-12-25 19:43:10 [INFO] root - Epoch [14/20]  Train Loss: 8.80470  Test Loss: 7.53035
+2024-12-25 19:43:12 [INFO] root - Epoch [15/20]  Train Loss: 7.42922  Test Loss: 7.86670
+2024-12-25 19:43:12 [INFO] root - [Checkpoint] Saved model to: train_runs\20241225_194203\model_epoch_15.pth
+2024-12-25 19:43:14 [INFO] root - Epoch [16/20]  Train Loss: 6.91531  Test Loss: 7.38363
+2024-12-25 19:43:16 [INFO] root - Epoch [17/20]  Train Loss: 6.21686  Test Loss: 6.20485
+2024-12-25 19:43:18 [INFO] root - Epoch [18/20]  Train Loss: 5.61121  Test Loss: 5.72581
+2024-12-25 19:43:20 [INFO] root - Epoch [19/20]  Train Loss: 5.45115  Test Loss: 5.34637
+2024-12-25 19:43:22 [INFO] root - Epoch [20/20]  Train Loss: 5.12600  Test Loss: 5.06957
+2024-12-25 19:43:22 [INFO] root - [Checkpoint] Saved model to: train_runs\20241225_194203\model_epoch_20.pth
+2024-12-25 19:43:22 [INFO] root - Saved loss curve to: train_runs\20241225_194203\loss_curve.png
+2024-12-25 19:43:22 [INFO] root - Saved final reconstruction to train_runs\20241225_194203\final_reconstruction.png
+2024-12-25 19:43:22 [INFO] root - === End of Main Script ===

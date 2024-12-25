@@ -34,19 +34,15 @@ def generate_random_phantom(size=128, max_shapes=5):
     return np.clip(image, 0, 1)
 
 
-def create_incomplete_sinogram(image, angles=None, missing_row_start=40, missing_row_end=60):
-    """
-    Perform Radon transform to create a sinogram, then zero out certain rows
-    to simulate a horizontally missing band.
-    """
+def create_incomplete_sinogram(image, angles=None, missing_angle_start=40, missing_angle_end=60):
+    """Compute radon transform and zero out a horizontal band."""
     if angles is None:
         angles = np.linspace(0., 180., max(image.shape), endpoint=False)
-    
+    print(angles)
     sinogram = radon(image, theta=angles, circle=False)
-    sinogram = sinogram.T  # transpose for horizontal alignment
-
+    mask = (angles >= missing_angle_start) & (angles < missing_angle_end)
     incomplete = sinogram.copy()
-    incomplete[missing_row_start:missing_row_end, :] = 0.0
+    incomplete[mask, :] = 0.0
     return sinogram, incomplete
 
 
@@ -58,14 +54,14 @@ class SinogramDataset(Dataset):
     def __init__(self, 
                  num_samples=100, 
                  size=128, 
-                 missing_row_start=40, 
-                 missing_row_end=60, 
+                 missing_angle_start=40, 
+                 missing_angle_end=60, 
                  dataset_folder=None):
         super().__init__()
         self.num_samples = num_samples
         self.size = size
-        self.missing_row_start = missing_row_start
-        self.missing_row_end = missing_row_end
+        self.missing_angle_start = missing_angle_start
+        self.missing_angle_end = missing_angle_end
 
         self.dataset_folder = dataset_folder
         if self.dataset_folder is not None:
@@ -112,8 +108,8 @@ class SinogramDataset(Dataset):
             complete_sino, incomplete_sino = create_incomplete_sinogram(
                 phantom,
                 angles=self.angles,
-                missing_row_start=self.missing_row_start,
-                missing_row_end=self.missing_row_end
+                missing_angle_start=self.missing_angle_start,
+                missing_angle_end=self.missing_angle_end
             )
         # Convert to torch tensor
         incomplete_t = torch.tensor(incomplete_sino, dtype=torch.float32).unsqueeze(0)

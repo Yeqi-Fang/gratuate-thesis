@@ -18,7 +18,7 @@ from logger_utils import setup_logging
 from generate_dataset import generate_dataset
 
 
-def pre_generate_images(num_samples, size, missing_row_start, missing_row_end, run_dir):
+def pre_generate_images(num_samples, size, missing_angle_start, missing_angle_end, run_dir):
     """
     Generates all phantom images beforehand, saves them to disk (optional),
     and returns a list of (incomplete_sino, complete_sino) arrays in memory.
@@ -39,18 +39,18 @@ def pre_generate_images(num_samples, size, missing_row_start, missing_row_end, r
         complete_sino, incomplete_sino = create_incomplete_sinogram(
             phantom,
             angles=angles,
-            missing_row_start=missing_row_start,
-            missing_row_end=missing_row_end
+            missing_angle_start=missing_angle_start,
+            missing_angle_end=missing_angle_end
         )
         images_list.append((incomplete_sino, complete_sino))
 
         # Optional: Save a small debug figure for each sample
         fig, axs = plt.subplots(1, 3, figsize=(9,3))
-        axs[0].imshow(phantom, cmap='gray')
+        axs[0].imshow(phantom, cmap='gray', extent=[0, 180, 0, 128])
         axs[0].set_title("Phantom")
-        axs[1].imshow(incomplete_sino, cmap='gray')
+        axs[1].imshow(incomplete_sino, cmap='gray', extent=[0, 180, 0, 128])
         axs[1].set_title("Incomplete Sinogram")
-        axs[2].imshow(complete_sino, cmap='gray')
+        axs[2].imshow(complete_sino, cmap='gray', extent=[0, 180, 0, 128])
         axs[2].set_title("Complete Sinogram")
         for ax in axs:
             ax.axis('off')
@@ -108,8 +108,8 @@ def main():
         generate_dataset(
             num_samples=args.num_samples,
             size=args.img_size,
-            missing_row_start=40,
-            missing_row_end=60,
+            missing_angle_start=40,
+            missing_angle_end=60,
             out_folder=dataset_folder
         )
         logger.info("Dataset generated. Now loading from disk ...")
@@ -171,11 +171,11 @@ def main():
 
     # 9) Save final example
     fig, axs = plt.subplots(1,3, figsize=(12,4))
-    axs[0].imshow(inc_np, cmap='gray')
+    axs[0].imshow(inc_np, cmap='gray', extent=[0, 180, 0, 128])
     axs[0].set_title("Incomplete Sinogram")
-    axs[1].imshow(out_np, cmap='gray')
+    axs[1].imshow(out_np, cmap='gray', extent=[0, 180, 0, 128])
     axs[1].set_title("Predicted Complete")
-    axs[2].imshow(com_np, cmap='gray')
+    axs[2].imshow(com_np, cmap='gray', extent=[0, 180, 0, 128])
     axs[2].set_title("Ground Truth Complete")
 
     final_img = os.path.join(run_dir, "final_reconstruction.png")

@@ -94,6 +94,7 @@ def train_model(
     plt.plot(test_losses, label='Test Loss')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
+    plt.yscale('log')  # Log scale
     plt.legend()
     plt.title('Train vs Test Loss')
     out_fig_path = os.path.join(run_dir, "loss_curve.png")

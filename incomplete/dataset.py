@@ -52,49 +52,73 @@ def create_incomplete_sinogram(image, angles=None, missing_row_start=40, missing
 
 class SinogramDataset(Dataset):
     """
-    Modified to handle two modes:
-      1) On-the-fly generation (old style).
-      2) Pre-generated data loaded from a list (new style).
+    If dataset_folder is provided, we load .npy files from that folder.
+    Else, we generate on-the-fly (generate_random_phantom).
     """
-    def __init__(self, size=128, num_samples=1000,
-                 missing_row_start=40, missing_row_end=60,
-                 pre_generated_data=None):
+    def __init__(self, 
+                 num_samples=100, 
+                 size=128, 
+                 missing_row_start=40, 
+                 missing_row_end=60, 
+                 dataset_folder=None):
         super().__init__()
-        self.size = size
         self.num_samples = num_samples
+        self.size = size
         self.missing_row_start = missing_row_start
         self.missing_row_end = missing_row_end
-        self.angles = np.linspace(0., 180., self.size, endpoint=False)
 
-        # new parameter: pre_generated_data
-        # if not None, it's a list of (incomplete_sino, complete_sino) arrays
-        self.pre_generated_data = pre_generated_data
+        self.dataset_folder = dataset_folder
+        if self.dataset_folder is not None:
+            # mode: use existing dataset
+            # find all incomplete_x.npy, complete_x.npy
+            self.incomplete_files = []
+            self.complete_files = []
+            for fname in os.listdir(dataset_folder):
+                if fname.startswith("incomplete_") and fname.endswith(".npy"):
+                    idx = int(fname.split('_')[1].split('.')[0])  # e.g. incomplete_0.npy -> 0
+                    self.incomplete_files.append((idx, os.path.join(dataset_folder, fname)))
+                elif fname.startswith("complete_") and fname.endswith(".npy"):
+                    idx = int(fname.split('_')[1].split('.')[0])
+                    self.complete_files.append((idx, os.path.join(dataset_folder, fname)))
+
+            # sort by idx to ensure consistent order
+            self.incomplete_files.sort(key=lambda x: x[0])
+            self.complete_files.sort(key=lambda x: x[0])
+
+            # check length consistency
+            if len(self.incomplete_files) != len(self.complete_files):
+                raise ValueError("Mismatch between incomplete and complete files in dataset folder!")
+
+            self.num_samples = len(self.incomplete_files)  # override
+        else:
+            # mode: generate on-the-fly
+            # angles for radon
+            self.angles = np.linspace(0., 180., self.size, endpoint=False)
 
     def __len__(self):
-        # if we have pre_generated_data, len is len of that list
-        if self.pre_generated_data is not None:
-            return len(self.pre_generated_data)
         return self.num_samples
 
     def __getitem__(self, idx):
-        # 1) If we have pre-generated data, just load it
-        if self.pre_generated_data is not None:
-            incomplete_sino_arr, complete_sino_arr = self.pre_generated_data[idx]
-            incomplete_sino_t = torch.tensor(incomplete_sino_arr, dtype=torch.float32).unsqueeze(0)
-            complete_sino_t = torch.tensor(complete_sino_arr, dtype=torch.float32).unsqueeze(0)
-            return incomplete_sino_t, complete_sino_t
-
-        # 2) Otherwise, do random generation (old style)
-        phantom = generate_random_phantom(self.size)
-        complete_sino, incomplete_sino = create_incomplete_sinogram(
-            phantom, 
-            angles=self.angles,
-            missing_row_start=self.missing_row_start, 
-            missing_row_end=self.missing_row_end
-        )
-        complete_sino_t = torch.tensor(complete_sino, dtype=torch.float32).unsqueeze(0)
-        incomplete_sino_t = torch.tensor(incomplete_sino, dtype=torch.float32).unsqueeze(0)
-        return incomplete_sino_t, complete_sino_t
+        if self.dataset_folder is not None:
+            # load from .npy files
+            inc_idx, inc_path = self.incomplete_files[idx]
+            comp_idx, comp_path = self.complete_files[idx]
+            # assert inc_idx == comp_idx if needed
+            incomplete_sino = np.load(inc_path)
+            complete_sino = np.load(comp_path)
+        else:
+            # On-the-fly generation
+            phantom = generate_random_phantom(size=self.size)
+            complete_sino, incomplete_sino = create_incomplete_sinogram(
+                phantom,
+                angles=self.angles,
+                missing_row_start=self.missing_row_start,
+                missing_row_end=self.missing_row_end
+            )
+        # Convert to torch tensor
+        incomplete_t = torch.tensor(incomplete_sino, dtype=torch.float32).unsqueeze(0)
+        complete_t = torch.tensor(complete_sino, dtype=torch.float32).unsqueeze(0)
+        return incomplete_t, complete_t
 
 def split_train_test(dataset, train_ratio=0.8):
     """

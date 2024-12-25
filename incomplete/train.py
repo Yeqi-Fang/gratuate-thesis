@@ -21,6 +21,7 @@ def save_checkpoint(model, epoch, optimizer, save_dir):
     torch.save(checkpoint, checkpoint_path)
     logging.info(f"[Checkpoint] Saved model to: {checkpoint_path}")
 
+
 def train_model(
     model,
     train_loader,
@@ -36,10 +37,11 @@ def train_model(
       - logs in run_dir (already set by logger).
       - checkpoints in run_dir (timestamped folder).
     """
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    if device is None:
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f"Using device: {device}")
+    model.to(device)
 
-    model = model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=lr)
     criterion = CombinedLoss(alpha=alpha)
 
@@ -47,10 +49,9 @@ def train_model(
     test_losses = []
 
     for epoch in range(1, epochs+1):
-        ### --- TRAIN PHASE --- ###
+        # Train
         model.train()
-        train_loss_accum = 0.0
-
+        train_loss_sum = 0.0
         for incomplete_sino, complete_sino in train_loader:
             incomplete_sino = incomplete_sino.to(device)
             complete_sino = complete_sino.to(device)
@@ -60,33 +61,30 @@ def train_model(
             loss = criterion(output, complete_sino)
             loss.backward()
             optimizer.step()
+            train_loss_sum += loss.item()
+        train_avg = train_loss_sum / len(train_loader)
+        train_losses.append(train_avg)
 
-            train_loss_accum += loss.item()
-
-        avg_train_loss = train_loss_accum / len(train_loader)
-        train_losses.append(avg_train_loss)
-
-        ### --- TEST PHASE --- ###
+        # Validation
         model.eval()
-        test_loss_accum = 0.0
+        val_loss_sum = 0.0
         with torch.no_grad():
             for incomplete_sino, complete_sino in test_loader:
                 incomplete_sino = incomplete_sino.to(device)
                 complete_sino = complete_sino.to(device)
                 output = model(incomplete_sino)
                 loss = criterion(output, complete_sino)
-                test_loss_accum += loss.item()
+                val_loss_sum += loss.item()
+        val_avg = val_loss_sum / len(test_loader) if len(test_loader) > 0 else 0
+        test_losses.append(val_avg)
 
-        avg_test_loss = test_loss_accum / len(test_loader) if len(test_loader) > 0 else 0.0
-        test_losses.append(avg_test_loss)
+        logging.info(f"Epoch[{epoch}/{epochs}] Train Loss: {train_avg:.5f}, Test Loss: {val_avg:.5f}")
 
-        logging.info(f"Epoch [{epoch}/{epochs}]  "
-                     f"Train Loss: {avg_train_loss:.5f}  "
-                     f"Test Loss: {avg_test_loss:.5f}")
-
-        # --- Save Checkpoint periodically ---
+        # Save checkpoint
         if epoch % save_interval == 0:
-            save_checkpoint(model, epoch, optimizer, save_dir=run_dir)
+            checkpoint_path = os.path.join(run_dir, f"model_epoch_{epoch}.pth")
+            torch.save(model.state_dict(), checkpoint_path)
+            logging.info(f"Checkpoint saved to {checkpoint_path}")
 
     # Optionally, you can also save final training curves, etc., inside `run_dir`
     # For example:

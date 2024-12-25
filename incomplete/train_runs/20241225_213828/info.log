@@ -1,0 +1,6 @@
+2024-12-25 21:38:28 [INFO] root - === Starting Main Script ===
+2024-12-25 21:38:28 [INFO] root - Run directory: train_runs\20241225_213828
+2024-12-25 21:38:28 [INFO] root - Command-line args: {'data_mode': 'existing', 'dataset_folder': 'output_dataset', 'num_samples': 500, 'img_size': 128, 'epochs': 50, 'lr': 0.001, 'alpha': 0.7, 'batch_size': 32, 'save_interval': 5}
+2024-12-25 21:38:28 [INFO] root - Using existing dataset from output_dataset
+2024-12-25 21:38:28 [INFO] root - Train subset: 800, Test subset: 200
+2024-12-25 21:38:28 [INFO] root - Train size: 800, Test size: 200

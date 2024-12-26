@@ -96,22 +96,25 @@ class PETSimulator:
         # Combine results
         self.sinogram = sum(results)
 
-    def _process_reconstruction_batch(self, detector_pairs):
+    def _process_reconstruction_batch(self, args):
         """Process a batch of detector pairs for reconstruction"""
+        detector_pairs, detector_positions, sinogram = args
         partial_reconstruction = np.zeros((self.image_size, self.image_size))
         y_grid, x_grid = np.mgrid[0:self.image_size, 0:self.image_size]
         
         for i, j in detector_pairs:
-            if self.sinogram[i, j] == 0:
+            if sinogram[i, j] == 0:
                 continue
                 
             # Get detector positions
-            d1 = self.detector_positions[i]
-            d2 = self.detector_positions[j]
+            d1 = detector_positions[i]
+            d2 = detector_positions[j]
             
             # Create line between detectors
             direction = d2 - d1
             length = np.sqrt(np.sum(direction**2))
+            if length < 1e-10:  # Skip if detectors are too close
+                continue
             direction = direction / length
             
             # Calculate perpendicular distance from each pixel to the line
@@ -119,7 +122,8 @@ class PETSimulator:
             dist = np.abs(np.cross(v, direction)) / length
             
             # Add contribution to pixels near the line
-            contribution = np.exp(-dist**2 / 2) * self.sinogram[i, j]
+            # Use a narrower Gaussian beam and scale the contribution
+            contribution = np.exp(-dist**2 / 0.5) * sinogram[i, j] * 0.1
             partial_reconstruction += contribution.reshape(self.image_size, self.image_size)
             
         return partial_reconstruction
@@ -132,17 +136,26 @@ class PETSimulator:
         
         # Split pairs into batches for parallel processing
         n_cores = multiprocessing.cpu_count()
-        batch_size = len(detector_pairs) // n_cores
+        batch_size = max(1, len(detector_pairs) // n_cores)
         batches = [detector_pairs[i:i + batch_size] 
                   for i in range(0, len(detector_pairs), batch_size)]
         
+        # Create arguments with necessary data for each process
+        args = [(batch, self.detector_positions, self.sinogram) for batch in batches]
+        
         # Process batches in parallel
         with ProcessPoolExecutor(max_workers=n_cores) as executor:
-            results = list(executor.map(self._process_reconstruction_batch, batches))
+            results = list(executor.map(self._process_reconstruction_batch, args))
         
         # Combine results
         reconstruction = sum(results)
-        return gaussian_filter(reconstruction, sigma=1)
+        
+        # Normalize and apply post-processing
+        if reconstruction.max() > 0:
+            reconstruction = reconstruction / reconstruction.max()
+        reconstruction = gaussian_filter(reconstruction, sigma=1)
+        
+        return reconstruction
 
     def visualize(self, reconstruction):
         """Visualize original phantom, sinogram, and reconstruction"""

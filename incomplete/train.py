@@ -48,6 +48,8 @@ def train_model(
 
     train_losses = []
     test_losses = []
+    best_val_loss = float('inf')  # Initialize best validation loss to infinity
+    best_model_path = os.path.join(run_dir, "best_model.pth")
 
     for epoch in range(1, epochs+1):
         # Train
@@ -81,25 +83,31 @@ def train_model(
 
         logging.info(f"Epoch[{epoch}/{epochs}] Train Loss: {train_avg:.5f}, Test Loss: {val_avg:.5f}")
 
-        # Save checkpoint
+        # Checkpoint Saving at Intervals
         if epoch % save_interval == 0:
             checkpoint_path = os.path.join(run_dir, f"model_epoch_{epoch}.pth")
             torch.save(model.state_dict(), checkpoint_path)
             logging.info(f"Checkpoint saved to {checkpoint_path}")
 
-    # Optionally, you can also save final training curves, etc., inside `run_dir`
-    # For example:
-    fig = plt.figure()
-    plt.plot(train_losses, label='Train Loss')
-    plt.plot(test_losses, label='Test Loss')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.yscale('log')  # Log scale
+        # Save Best Model
+        if val_avg < best_val_loss:
+            best_val_loss = val_avg
+            torch.save(model.state_dict(), best_model_path)
+            logging.info(f"Best model updated and saved to {best_model_path} with Validation Loss: {best_val_loss:.5f}")
+
+    # Plotting Loss Curves with Log Scale
+    plt.figure()
+    plt.plot(range(1, epochs + 1), train_losses, label='Train Loss')
+    plt.plot(range(1, epochs + 1), test_losses, label='Validation Loss')
+    plt.yscale('log')  # Logarithmic scale for better visibility
+    plt.title("Training & Validation Loss (Log Scale)")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss (Log Scale)")
     plt.legend()
-    plt.title('Train vs Test Loss')
-    out_fig_path = os.path.join(run_dir, "loss_curve.png")
-    plt.savefig(out_fig_path)
-    plt.close(fig)
-    logging.info(f"Saved loss curve to: {out_fig_path}")
+    out_fig = os.path.join(run_dir, "loss_curve.png")
+    plt.savefig(out_fig)
+    plt.close()
+    
+    logging.info(f"Saved loss curve to: {out_fig}")
 
     return train_losses, test_losses

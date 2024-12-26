@@ -1,0 +1,102 @@
+2024-12-26 09:29:51 [INFO] root - === Starting Main Script ===
+2024-12-26 09:29:51 [INFO] root - Run directory: train_runs\20241226_092951
+2024-12-26 09:29:51 [INFO] root - Command-line args: {'data_mode': 'existing', 'dataset_folder': 'output_dataset', 'num_samples': 200, 'img_size': 128, 'epochs': 50, 'lr': 0.001, 'alpha': 0.7, 'batch_size': 32, 'save_interval': 5}
+2024-12-26 09:29:51 [INFO] root - Using existing dataset from output_dataset
+2024-12-26 09:29:51 [INFO] root - Train subset: 800, Test subset: 200
+2024-12-26 09:29:51 [INFO] root - Train size: 800, Test size: 200
+2024-12-26 09:29:51 [INFO] root - Using device: cuda
+2024-12-26 09:30:04 [INFO] root - Epoch[1/50] Train Loss: 55648.14917, Test Loss: 339.11108
+2024-12-26 09:30:04 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 339.11108
+2024-12-26 09:30:11 [INFO] root - Epoch[2/50] Train Loss: 196.67073, Test Loss: 239.66500
+2024-12-26 09:30:11 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 239.66500
+2024-12-26 09:30:17 [INFO] root - Epoch[3/50] Train Loss: 118.98840, Test Loss: 39.03331
+2024-12-26 09:30:17 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 39.03331
+2024-12-26 09:30:24 [INFO] root - Epoch[4/50] Train Loss: 17.64673, Test Loss: 10.45324
+2024-12-26 09:30:24 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 10.45324
+2024-12-26 09:30:31 [INFO] root - Epoch[5/50] Train Loss: 8.40092, Test Loss: 6.69803
+2024-12-26 09:30:31 [INFO] root - Checkpoint saved to train_runs\20241226_092951\model_epoch_5.pth
+2024-12-26 09:30:31 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 6.69803
+2024-12-26 09:30:37 [INFO] root - Epoch[6/50] Train Loss: 5.48129, Test Loss: 4.38520
+2024-12-26 09:30:38 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 4.38520
+2024-12-26 09:30:44 [INFO] root - Epoch[7/50] Train Loss: 4.07110, Test Loss: 3.27431
+2024-12-26 09:30:44 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 3.27431
+2024-12-26 09:30:51 [INFO] root - Epoch[8/50] Train Loss: 2.65410, Test Loss: 2.04899
+2024-12-26 09:30:51 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 2.04899
+2024-12-26 09:30:58 [INFO] root - Epoch[9/50] Train Loss: 1.98460, Test Loss: 1.87659
+2024-12-26 09:30:58 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 1.87659
+2024-12-26 09:31:05 [INFO] root - Epoch[10/50] Train Loss: 1.60948, Test Loss: 1.37019
+2024-12-26 09:31:05 [INFO] root - Checkpoint saved to train_runs\20241226_092951\model_epoch_10.pth
+2024-12-26 09:31:05 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 1.37019
+2024-12-26 09:31:11 [INFO] root - Epoch[11/50] Train Loss: 1.29510, Test Loss: 3.36683
+2024-12-26 09:31:18 [INFO] root - Epoch[12/50] Train Loss: 2.44449, Test Loss: 1.30998
+2024-12-26 09:31:18 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 1.30998
+2024-12-26 09:31:25 [INFO] root - Epoch[13/50] Train Loss: 1.21282, Test Loss: 1.10803
+2024-12-26 09:31:25 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 1.10803
+2024-12-26 09:31:32 [INFO] root - Epoch[14/50] Train Loss: 1.01633, Test Loss: 0.97315
+2024-12-26 09:31:32 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 0.97315
+2024-12-26 09:31:38 [INFO] root - Epoch[15/50] Train Loss: 0.92744, Test Loss: 0.88082
+2024-12-26 09:31:38 [INFO] root - Checkpoint saved to train_runs\20241226_092951\model_epoch_15.pth
+2024-12-26 09:31:38 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 0.88082
+2024-12-26 09:31:45 [INFO] root - Epoch[16/50] Train Loss: 0.86567, Test Loss: 0.95427
+2024-12-26 09:31:52 [INFO] root - Epoch[17/50] Train Loss: 0.79904, Test Loss: 0.75291
+2024-12-26 09:31:52 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 0.75291
+2024-12-26 09:31:58 [INFO] root - Epoch[18/50] Train Loss: 0.85639, Test Loss: 0.85158
+2024-12-26 09:32:05 [INFO] root - Epoch[19/50] Train Loss: 0.71255, Test Loss: 0.70419
+2024-12-26 09:32:05 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 0.70419
+2024-12-26 09:32:12 [INFO] root - Epoch[20/50] Train Loss: 0.66756, Test Loss: 0.64024
+2024-12-26 09:32:12 [INFO] root - Checkpoint saved to train_runs\20241226_092951\model_epoch_20.pth
+2024-12-26 09:32:12 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 0.64024
+2024-12-26 09:32:18 [INFO] root - Epoch[21/50] Train Loss: 0.64281, Test Loss: 0.63063
+2024-12-26 09:32:19 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 0.63063
+2024-12-26 09:32:25 [INFO] root - Epoch[22/50] Train Loss: 0.59300, Test Loss: 0.57673
+2024-12-26 09:32:25 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 0.57673
+2024-12-26 09:32:32 [INFO] root - Epoch[23/50] Train Loss: 0.62659, Test Loss: 0.70230
+2024-12-26 09:32:38 [INFO] root - Epoch[24/50] Train Loss: 0.63340, Test Loss: 0.54097
+2024-12-26 09:32:38 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 0.54097
+2024-12-26 09:32:45 [INFO] root - Epoch[25/50] Train Loss: 0.52098, Test Loss: 0.51557
+2024-12-26 09:32:45 [INFO] root - Checkpoint saved to train_runs\20241226_092951\model_epoch_25.pth
+2024-12-26 09:32:45 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 0.51557
+2024-12-26 09:32:52 [INFO] root - Epoch[26/50] Train Loss: 0.48928, Test Loss: 0.49267
+2024-12-26 09:32:52 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 0.49267
+2024-12-26 09:32:58 [INFO] root - Epoch[27/50] Train Loss: 0.50338, Test Loss: 0.61457
+2024-12-26 09:33:05 [INFO] root - Epoch[28/50] Train Loss: 0.77086, Test Loss: 0.60514
+2024-12-26 09:33:11 [INFO] root - Epoch[29/50] Train Loss: 0.50783, Test Loss: 0.47165
+2024-12-26 09:33:11 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 0.47165
+2024-12-26 09:33:18 [INFO] root - Epoch[30/50] Train Loss: 0.44757, Test Loss: 0.45208
+2024-12-26 09:33:18 [INFO] root - Checkpoint saved to train_runs\20241226_092951\model_epoch_30.pth
+2024-12-26 09:33:18 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 0.45208
+2024-12-26 09:33:25 [INFO] root - Epoch[31/50] Train Loss: 0.46106, Test Loss: 0.58595
+2024-12-26 09:33:31 [INFO] root - Epoch[32/50] Train Loss: 0.57737, Test Loss: 0.46489
+2024-12-26 09:33:38 [INFO] root - Epoch[33/50] Train Loss: 0.51639, Test Loss: 0.46566
+2024-12-26 09:33:44 [INFO] root - Epoch[34/50] Train Loss: 0.47523, Test Loss: 0.42459
+2024-12-26 09:33:44 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 0.42459
+2024-12-26 09:33:51 [INFO] root - Epoch[35/50] Train Loss: 0.40609, Test Loss: 0.43840
+2024-12-26 09:33:51 [INFO] root - Checkpoint saved to train_runs\20241226_092951\model_epoch_35.pth
+2024-12-26 09:33:58 [INFO] root - Epoch[36/50] Train Loss: 0.38038, Test Loss: 0.38649
+2024-12-26 09:33:58 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 0.38649
+2024-12-26 09:34:04 [INFO] root - Epoch[37/50] Train Loss: 0.35654, Test Loss: 0.37798
+2024-12-26 09:34:04 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 0.37798
+2024-12-26 09:34:11 [INFO] root - Epoch[38/50] Train Loss: 0.34206, Test Loss: 0.37226
+2024-12-26 09:34:11 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 0.37226
+2024-12-26 09:34:18 [INFO] root - Epoch[39/50] Train Loss: 0.33631, Test Loss: 0.37539
+2024-12-26 09:34:24 [INFO] root - Epoch[40/50] Train Loss: 0.39247, Test Loss: 0.60126
+2024-12-26 09:34:24 [INFO] root - Checkpoint saved to train_runs\20241226_092951\model_epoch_40.pth
+2024-12-26 09:34:31 [INFO] root - Epoch[41/50] Train Loss: 0.37035, Test Loss: 0.48800
+2024-12-26 09:34:37 [INFO] root - Epoch[42/50] Train Loss: 0.35289, Test Loss: 0.35039
+2024-12-26 09:34:37 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 0.35039
+2024-12-26 09:34:44 [INFO] root - Epoch[43/50] Train Loss: 0.32792, Test Loss: 0.34184
+2024-12-26 09:34:44 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 0.34184
+2024-12-26 09:34:51 [INFO] root - Epoch[44/50] Train Loss: 0.32244, Test Loss: 0.37514
+2024-12-26 09:34:57 [INFO] root - Epoch[45/50] Train Loss: 0.30138, Test Loss: 0.33805
+2024-12-26 09:34:57 [INFO] root - Checkpoint saved to train_runs\20241226_092951\model_epoch_45.pth
+2024-12-26 09:34:57 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 0.33805
+2024-12-26 09:35:04 [INFO] root - Epoch[46/50] Train Loss: 0.35229, Test Loss: 0.37925
+2024-12-26 09:35:10 [INFO] root - Epoch[47/50] Train Loss: 0.33881, Test Loss: 0.46258
+2024-12-26 09:35:17 [INFO] root - Epoch[48/50] Train Loss: 0.40798, Test Loss: 0.57341
+2024-12-26 09:35:24 [INFO] root - Epoch[49/50] Train Loss: 0.46693, Test Loss: 0.39269
+2024-12-26 09:35:30 [INFO] root - Epoch[50/50] Train Loss: 0.29060, Test Loss: 0.31834
+2024-12-26 09:35:30 [INFO] root - Checkpoint saved to train_runs\20241226_092951\model_epoch_50.pth
+2024-12-26 09:35:30 [INFO] root - Best model updated and saved to train_runs\20241226_092951\best_model.pth with Validation Loss: 0.31834
+2024-12-26 09:35:31 [INFO] root - Saved loss curve to: train_runs\20241226_092951\loss_curve.png
+2024-12-26 09:35:31 [INFO] root - Saved final reconstruction to train_runs\20241226_092951\final_reconstruction.png
+2024-12-26 09:35:31 [INFO] root - === End of Main Script ===

@@ -173,10 +173,18 @@ def main():
     fig, axs = plt.subplots(1,3, figsize=(12,4))
     axs[0].imshow(inc_np, cmap='gray', extent=[0, 180, 0, 128])
     axs[0].set_title("Incomplete Sinogram")
+    axs[0].set_xlabel("Angle (degrees)")
+    axs[0].set_ylabel("Detector Position")
+
     axs[1].imshow(out_np, cmap='gray', extent=[0, 180, 0, 128])
     axs[1].set_title("Predicted Complete")
+    axs[1].set_xlabel("Angle (degrees)")
+    axs[1].set_ylabel("Detector Position")
+
     axs[2].imshow(com_np, cmap='gray', extent=[0, 180, 0, 128])
     axs[2].set_title("Ground Truth Complete")
+    axs[2].set_xlabel("Angle (degrees)")
+    axs[2].set_ylabel("Detector Position")
 
     final_img = os.path.join(run_dir, "final_reconstruction.png")
     plt.savefig(final_img)

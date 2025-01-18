@@ -2,6 +2,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torchinfo import summary
+from torchviz import make_dot
 
 class DoubleConv(nn.Module):
     def __init__(self, in_channels, out_channels):
@@ -74,3 +76,33 @@ class UNet(nn.Module):
             x = self.ups[idx+1](x)
         
         return self.final_conv(x)
+
+def visualize_model(model, input_size):
+    """
+    Visualize the model structure.
+    Args:
+        model (nn.Module): The model to visualize.
+        input_size (tuple): The size of the input tensor (C, H, W).
+    """
+    # Ensure input tensor has the correct dimensions
+    if len(input_size) == 3:
+        input_size = (1, *input_size)
+    summary(model, input_size)
+
+def visualize_model_as_image(model, input_size):
+    """
+    Visualize the model structure as an image.
+    Args:
+        model (nn.Module): The model to visualize.
+        input_size (tuple): The size of the input tensor (C, H, W).
+    """
+    x = torch.randn(1, *input_size)
+    y = model(x)
+    dot = make_dot(y, params=dict(model.named_parameters()))
+    dot.format = 'png'
+    dot.render('model_structure')
+
+# Example usage:
+if __name__ == "__main__":
+    model = UNet(in_channels=1, out_channels=1)
+    visualize_model_as_image(model, (1, 256, 256))

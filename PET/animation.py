@@ -270,4 +270,4 @@ if __name__ == '__main__':
     # Create simulation and animation
     np.random.seed(42)  # For reproducibility
     pet_sim = PETSimulation(detector_radius=100, n_detectors=180)
-    pet_sim.create_animation(n_frames=5000, interval=50)
+    pet_sim.create_animation(n_frames=100, interval=50)

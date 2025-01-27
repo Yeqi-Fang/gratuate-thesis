@@ -310,8 +310,8 @@ def main():
     end_time = time.time()
     
     # Save events in both formats
-    save_events("listmode_data_minimal.txt", events, save_full_data=False)
-    save_events("listmode_data_full.txt", events, save_full_data=True)
+    save_events("listmode/listmode_data_minimal.txt", events, save_full_data=False)
+    save_events("listmode/listmode_data_full.txt", events, save_full_data=True)
     
     print(f"Generated {len(events)} valid events")
     print(f"Simulation time: {end_time - start_time:.2f} seconds")

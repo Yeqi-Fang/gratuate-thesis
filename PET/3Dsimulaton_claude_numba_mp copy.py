@@ -246,22 +246,21 @@ class PETSimulator:
     def _calculate_detector_positions(self):
         """Calculate detector positions"""
         angles = np.linspace(0, 2*np.pi, self.geometry.crystals_per_ring, endpoint=False)
-        self.detector_positions = np.zeros((self.geometry.num_rings *
-                                            self.geometry.crystals_per_ring, 3),
-                                           dtype=np.float64)
-
+        self.detector_positions = np.zeros((self.geometry.num_rings * 
+                                          self.geometry.crystals_per_ring, 3),
+                                         dtype=np.float64)
+        
         for ring in range(self.geometry.num_rings):
             z_pos = (ring - self.geometry.num_rings/2) * self.geometry.crystal_axial_spacing
             start_idx = ring * self.geometry.crystals_per_ring
             end_idx = (ring + 1) * self.geometry.crystals_per_ring
-
+            
             self.detector_positions[start_idx:end_idx, 0] = self.geometry.radius * np.cos(angles)
             self.detector_positions[start_idx:end_idx, 1] = self.geometry.radius * np.sin(angles)
             self.detector_positions[start_idx:end_idx, 2] = z_pos
 
     def simulate_events(self, num_events: int) -> np.ndarray:
         """Simulate events using multiprocessing"""
-        # Prepare shared data dictionary
         shared_data = {
             'image': self.image,
             'shape': self.image.shape,
@@ -273,43 +272,47 @@ class PETSimulator:
             'cumsum_prob': self.cumsum_prob
         }
 
-        # Determine number of processes and batch sizes
         num_processes = mp.cpu_count()
         batch_size = num_events // num_processes
 
-        # Create process pool and run simulations
         with mp.Pool(num_processes) as pool:
             process_batch_partial = partial(process_batch,
-                                            batch_size=batch_size,
-                                            shared_data=shared_data)
+                                         batch_size=batch_size,
+                                         shared_data=shared_data)
             results = pool.map(process_batch_partial, range(num_processes))
 
-        # Combine results
         total_events = np.vstack(results)
         return total_events
-
+    
+    def save_detector_positions(self, filename: str):
+        """Save detector positions lookup table"""
+        save_detector_lut(filename, self.detector_positions)
 
 def main():
     import time
-
+    
     # Load 3D image
     image = np.load('3d_image_2.npy')
-
+    
     # Create geometry from info
     geometry = create_pet_geometry(info)
-
+    
     # Create simulator
     simulator = PETSimulator(geometry, image, voxel_size=2.78)
-
+    
+    # Save detector LUT first
+    simulator.save_detector_positions("detector_lut.txt")
+    
     # Simulate events with timing
     print("Starting simulation...")
     start_time = time.time()
     events = simulator.simulate_events(num_events=int(1e8))
     end_time = time.time()
-
-    # Save events with extended information - Corrected order
-    save_events_with_positions("listmode_data_extended.txt", events)
-
+    
+    # Save events in both formats
+    save_events("listmode_data_minimal.txt", events, save_full_data=False)
+    save_events("listmode_data_full.txt", events, save_full_data=True)
+    
     print(f"Generated {len(events)} valid events")
     print(f"Simulation time: {end_time - start_time:.2f} seconds")
     print("Events shape:", events.shape)

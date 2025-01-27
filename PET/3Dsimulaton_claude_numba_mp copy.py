@@ -60,7 +60,25 @@ def create_pet_geometry(info: dict) -> PETGeometry:
         module_axial_nr=int(info['moduleAxialNr']),
         module_axial_spacing=float(info['moduleAxialSpacing'])
     )
-
+    
+    
+def save_detector_lut(filename: str, detector_positions: np.ndarray):
+    """
+    Save detector lookup table (LUT)
+    Args:
+        filename: output file name
+        detector_positions: array with detector positions
+    """
+    # Create detector IDs array
+    detector_ids = np.arange(len(detector_positions))
+    
+    # Combine detector IDs with their positions
+    lut_data = np.column_stack((detector_ids, detector_positions))
+    
+    # Save with header and format
+    header = "detector_id x y z"
+    fmt = ['%d'] + ['%.6f']*3
+    np.savetxt(filename, lut_data, fmt=fmt, header=header)
 
 @njit
 def manual_unravel_index(idx: int, shape: Tuple[int, int, int]) -> Tuple[int, int, int]:
@@ -170,22 +188,29 @@ def simulate_batch(batch_size: int, image: np.ndarray, shape: Tuple[int, int, in
 
     return events[:valid_count]
 
-def save_events_with_positions(filename: str, events: np.ndarray):
+
+def save_events(filename: str, events: np.ndarray, save_full_data: bool = False):
     """
-    Save events with detailed position information
+    Save events with option for full or minimal data
     Args:
         filename: output file name
-        events: array with shape (N, 11) containing event data
+        events: array with event data
+        save_full_data: if True, save all data including positions
     """
-    header = ("det1_id det2_id "
-             "det1_x det1_y det1_z "
-             "det2_x det2_y det2_z "
-             "event_x event_y event_z")
-    
-    # Convert detector IDs to integers while keeping positions as floats
-    fmt = ['%d', '%d'] + ['%.6f']*9
-    
-    np.savetxt(filename, events, fmt=fmt, header=header)
+    if save_full_data:
+        # Save full data: detector IDs, positions and event position
+        header = ("det1_id det2_id "
+                 "det1_x det1_y det1_z "
+                 "det2_x det2_y det2_z "
+                 "event_x event_y event_z")
+        fmt = ['%d', '%d'] + ['%.6f']*9
+        np.savetxt(filename, events, fmt=fmt, header=header)
+    else:
+        # Save only detector IDs
+        header = "det1_id det2_id"
+        detector_ids = events[:, :2]  # Take only first two columns
+        np.savetxt(filename, detector_ids, fmt='%d', header=header)
+
 
 
 def process_batch(process_id: int, batch_size: int, shared_data: dict) -> np.ndarray:
@@ -220,15 +245,13 @@ class PETSimulator:
 
     def _calculate_detector_positions(self):
         """Calculate detector positions"""
-        angles = np.linspace(
-            0, 2*np.pi, self.geometry.crystals_per_ring, endpoint=False)
+        angles = np.linspace(0, 2*np.pi, self.geometry.crystals_per_ring, endpoint=False)
         self.detector_positions = np.zeros((self.geometry.num_rings *
                                             self.geometry.crystals_per_ring, 3),
                                            dtype=np.float64)
 
         for ring in range(self.geometry.num_rings):
-            z_pos = (ring - self.geometry.num_rings/2) * \
-                self.geometry.crystal_axial_spacing
+            z_pos = (ring - self.geometry.num_rings/2) * self.geometry.crystal_axial_spacing
             start_idx = ring * self.geometry.crystals_per_ring
             end_idx = (ring + 1) * self.geometry.crystals_per_ring
 
@@ -281,7 +304,7 @@ def main():
     # Simulate events with timing
     print("Starting simulation...")
     start_time = time.time()
-    events = simulator.simulate_events(num_events=int(2e6))
+    events = simulator.simulate_events(num_events=int(1e8))
     end_time = time.time()
 
     # Save events with extended information - Corrected order

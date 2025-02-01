@@ -35,7 +35,7 @@ info = {
 
 def main():
     
-    num_events = int(1e6)
+    num_events = int(1e8)
     # Load the 3D image that acts as the probability density distribution.
     image = np.load('3d_image_2.npy')
     
@@ -54,13 +54,13 @@ def main():
     events = simulator.simulate_events(num_events=num_events)
     end_time = time.time()
     
-    # Save events in both minimal and full formats
+    # # Save events in both minimal and full formats
     save_events(f"listmode/listmode_data_minimal_{num_events}.txt", events, save_full_data=False)
     save_events(f"listmode/listmode_data_full_{num_events}.txt", events, save_full_data=True)
     
     # Save events in binary .lmf format (minimal and full)
-    save_events_binary("listmode/listmode_data_minimal.lmf", events, save_full_data=False)
-    save_events_binary("listmode/listmode_data_full.lmf", events, save_full_data=True)
+    save_events_binary(f"listmode/listmode_data_minimal_{num_events}.lmf", events, save_full_data=False)
+    save_events_binary(f"listmode/listmode_data_full_{num_events}.lmf", events, save_full_data=True)
     
     print(f"Generated {len(events)} valid events")
     print(f"Simulation time: {end_time - start_time:.2f} seconds")

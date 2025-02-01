@@ -4,3 +4,4 @@ listmode_data_minimal.txt
 listmode_data_full.txt
 *.pyc
 pet_simulator/__pycache__
+tests/__pycache__

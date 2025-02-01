@@ -6,3 +6,4 @@ listmode_data_full.txt
 pet_simulator/__pycache__
 tests/__pycache__
 listmode/
+listmode_train/

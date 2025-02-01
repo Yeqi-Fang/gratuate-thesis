@@ -62,7 +62,7 @@ def simulate_batch(batch_size: int, image: np.ndarray, shape: Tuple[int, int, in
     valid_count = 0
 
     for _ in range(batch_size):
-        # Choose a random annihilation point based on the cumulative probability
+        # Generate a random annihilation point based on the cumulative probability
         rand_val = np.random.random()
         idx = np.searchsorted(cumsum_prob, rand_val)
         z, y, x = manual_unravel_index(idx, shape)
@@ -73,7 +73,7 @@ def simulate_batch(batch_size: int, image: np.ndarray, shape: Tuple[int, int, in
         z_pos = (z - shape[0] / 2) * voxel_size
         pos = np.array([x_pos, y_pos, z_pos], dtype=np.float64)
 
-        # Generate random direction
+        # Generate a random direction and its opposite
         phi = np.random.uniform(0, 2 * np.pi)
         cos_theta = np.random.uniform(-1, 1)
         sin_theta = np.sqrt(1 - cos_theta**2)

@@ -55,8 +55,8 @@ def main():
     end_time = time.time()
     
     # # Save events in both minimal and full formats
-    save_events(f"listmode/listmode_data_minimal_{num_events}.txt", events, save_full_data=False)
-    save_events(f"listmode/listmode_data_full_{num_events}.txt", events, save_full_data=True)
+    # save_events(f"listmode/listmode_data_minimal_{num_events}.txt", events, save_full_data=False)
+    # save_events(f"listmode/listmode_data_full_{num_events}.txt", events, save_full_data=True)
     
     # Save events in binary .lmf format (minimal and full)
     save_events_binary(f"listmode/listmode_data_minimal_{num_events}.lmf", events, save_full_data=False)

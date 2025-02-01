@@ -1,5 +1,6 @@
 # main.py
 import time
+import os
 import numpy as np
 from pet_simulator.geometry import create_pet_geometry
 from pet_simulator.simulator import PETSimulator
@@ -36,41 +37,58 @@ info = {
 def main():
     
     num_events = int(1e8)
-    # Load the 3D image that acts as the probability density distribution.
-    image = np.load('3d_image_2.npy')
     
     # Create PET scanner geometry from info
     geometry = create_pet_geometry(info)
     
-    # Instantiate the simulator with the image and voxel size
-    simulator = PETSimulator(geometry, image, voxel_size=2.78)
+    # Save the detector lookup table once.
+    # (Since LUT depends only on geometry, a dummy image is sufficient.)
+    dummy_image = np.zeros((1,1,1), dtype=np.float64)
+    simulator_for_lut = PETSimulator(geometry, dummy_image, voxel_size=2.78)
+    simulator_for_lut.save_detector_positions("detector_lut.txt")
     
-    # Save the detector lookup table
-    simulator.save_detector_positions("detector_lut.txt")
+    # Define the base directory where the 3D image files are stored.
+    base_dir = r"D:\Datasets\dataset\train_npy"
     
-    # Run the simulation
-    print("Starting simulation...")
-    start_time = time.time()
-    events = simulator.simulate_events(num_events=num_events)
-    end_time = time.time()
+    # Create an output directory for listmode data if it doesn't exist.
+    output_dir = "listmode_train"
+    os.makedirs(output_dir, exist_ok=True)
     
-    # # Save events in both minimal and full formats
-    # save_events(f"listmode/listmode_data_minimal_{num_events}.txt", events, save_full_data=False)
-    # save_events(f"listmode/listmode_data_full_{num_events}.txt", events, save_full_data=True)
-    
-    # Save events in binary .lmf format (minimal and full)
-    save_events_binary(f"listmode/listmode_data_minimal_{num_events}.lmf", events, save_full_data=False)
-    save_events_binary(f"listmode/listmode_data_full_{num_events}.lmf", events, save_full_data=True)
-    
-    print(f"Generated {len(events)} valid events")
-    print(f"Simulation time: {end_time - start_time:.2f} seconds")
-    print("Events shape:", events.shape)
-    print("\nSample event (with positions):")
-    print("Detector 1 ID:", events[0, 0])
-    print("Detector 2 ID:", events[0, 1])
-    print("Detector 1 position (x,y,z):", events[0, 2:5])
-    print("Detector 2 position (x,y,z):", events[0, 5:8])
-    print("Event position (x,y,z):", events[0, 8:11])
+    # Process each image file from 3d_image_0.npy to 3d_image_169.npy
+    for i in range(170):
+        image_filename = f"3d_image_{i}.npy"
+        image_path = os.path.join(base_dir, image_filename)
+        print(f"\nProcessing {image_filename} ...")
+        
+        # Load the 3D image (which acts as the probability density distribution)
+        image = np.load(image_path)
+        
+        # Create the simulator with the current image and voxel size
+        simulator = PETSimulator(geometry, image, voxel_size=2.78)
+        
+        # Run the simulation
+        print("Starting simulation...")
+        start_time = time.time()
+        events = simulator.simulate_events(num_events=num_events)
+        end_time = time.time()
+        print(f"Generated {len(events)} valid events in {end_time - start_time:.2f} seconds.")
+        print("Events shape:", events.shape)
+        
+        # Save events in binary .lmf format (minimal and full)
+        minimal_file = os.path.join(output_dir, f"listmode_data_minimal_{i}_{num_events}.lmf")
+        full_file = os.path.join(output_dir, f"listmode_data_full_{i}_{num_events}.lmf")
+        save_events_binary(minimal_file, events, save_full_data=False)
+        save_events_binary(full_file, events, save_full_data=True)
+        
+        # Optionally, print a sample event.
+        if len(events) > 0:
+            print("\nSample event (with positions):")
+            print("Detector 1 ID:", events[0, 0])
+            print("Detector 2 ID:", events[0, 1])
+            print("Detector 1 position (x,y,z):", events[0, 2:5])
+            print("Detector 2 position (x,y,z):", events[0, 5:8])
+            print("Event position (x,y,z):", events[0, 8:11])
+
 
 if __name__ == "__main__":
     main()

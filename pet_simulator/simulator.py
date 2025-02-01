@@ -31,6 +31,8 @@ class PETSimulator:
         self._calculate_detector_positions()
         # Pre-calculate probability distribution for event generation
         total_activity = np.sum(self.image)
+        assert total_activity > 0, "Total activity must be greater than 0."
+        print('total_activity', total_activity)
         self.probabilities = self.image.ravel() / total_activity
         self.cumsum_prob = np.cumsum(self.probabilities)
 

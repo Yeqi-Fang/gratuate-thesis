@@ -75,8 +75,9 @@ def simulate_batch(batch_size: int, image: np.ndarray, shape: Tuple[int, int, in
 
         # Generate a random direction and its opposite
         phi = np.random.uniform(0, 2 * np.pi)
-        cos_theta = np.random.uniform(-1, 1)
-        sin_theta = np.sqrt(1 - cos_theta**2)
+        theta = np.random.uniform(0, np.pi)
+        cos_theta = np.cos(theta)
+        sin_theta = np.sin(theta)
         dir1 = np.array([sin_theta * np.cos(phi),
                          sin_theta * np.sin(phi),
                          cos_theta], dtype=np.float64)

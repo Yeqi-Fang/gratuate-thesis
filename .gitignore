@@ -10,3 +10,4 @@ listmode_train/
 listmode_test/
 reconstruction_npy_full_train/
 reconstruction_npy_full_test/
+reconstruction_npy_full_train_scaled/

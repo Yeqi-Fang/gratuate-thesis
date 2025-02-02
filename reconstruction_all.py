@@ -102,7 +102,7 @@ def main():
     output_folder = "reconstruction_npy_full_test"
     os.makedirs(output_folder, exist_ok=True)
     
-    num_files = 170  # From 0 to 169.
+    num_files = 35  # From 0 to 169.
     for i in range(num_files):
         listmode_file = os.path.join(listmode_folder, f"listmode_data_minimal_{i}_100000000.lmf")
         output_file = os.path.join(output_folder, f"reconstructed_{i}_128x128x128.npy")

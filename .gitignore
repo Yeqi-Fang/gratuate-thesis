@@ -8,3 +8,4 @@ tests/__pycache__
 listmode/
 listmode_train/
 listmode_test/
+reconstruction_npy_full/

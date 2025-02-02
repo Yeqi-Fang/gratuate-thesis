@@ -43,19 +43,19 @@ def main():
     
     # Save the detector lookup table once.
     # (Since LUT depends only on geometry, a dummy image is sufficient.)
-    dummy_image = np.zeros((1,1,1), dtype=np.float64)
+    dummy_image = np.ones((1,1,1), dtype=np.float64)
     simulator_for_lut = PETSimulator(geometry, dummy_image, voxel_size=2.78)
     simulator_for_lut.save_detector_positions("detector_lut.txt")
     
     # Define the base directory where the 3D image files are stored.
-    base_dir = r"D:\Datasets\dataset\train_npy"
+    base_dir = r"D:\Datasets\dataset\test_npy"
     
     # Create an output directory for listmode data if it doesn't exist.
-    output_dir = "listmode_train"
+    output_dir = "listmode_test"
     os.makedirs(output_dir, exist_ok=True)
     
     # Process each image file from 3d_image_0.npy to 3d_image_169.npy
-    for i in range(170):
+    for i in range(70):
         image_filename = f"3d_image_{i}.npy"
         image_path = os.path.join(base_dir, image_filename)
         print(f"\nProcessing {image_filename} ...")
@@ -76,9 +76,11 @@ def main():
         
         # Save events in binary .lmf format (minimal and full)
         minimal_file = os.path.join(output_dir, f"listmode_data_minimal_{i}_{num_events}.lmf")
-        full_file = os.path.join(output_dir, f"listmode_data_full_{i}_{num_events}.lmf")
         save_events_binary(minimal_file, events, save_full_data=False)
-        save_events_binary(full_file, events, save_full_data=True)
+        a = np.random.rand()
+        if a < 0.1:
+            full_file = os.path.join(output_dir, f"listmode_data_full_{i}_{num_events}.lmf")
+            save_events_binary(full_file, events, save_full_data=True)
         
         # Optionally, print a sample event.
         if len(events) > 0:

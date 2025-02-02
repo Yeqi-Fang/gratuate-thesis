@@ -95,11 +95,11 @@ def reconstruct_and_save(listmode_file, lut_file, output_file, n_iters=2, n_subs
 
 def main():
     # Folder containing the 170 minimal listmode data files.
-    listmode_folder = r"listmode_train"
+    listmode_folder = r"listmode_test"
     # File for the scanner lookup table (LUT) (assumed to be in the current directory)
     lut_file = "detector_lut.txt"
     # Output folder where the reconstructed .npy files will be saved.
-    output_folder = "reconstruction_npy_full"
+    output_folder = "reconstruction_npy_full_test"
     os.makedirs(output_folder, exist_ok=True)
     
     num_files = 170  # From 0 to 169.

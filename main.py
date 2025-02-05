@@ -39,7 +39,7 @@ info = {
 
 def main():
     
-    num_events = int(1.7e8)
+    num_events = int(4e8)
     
     # Create PET scanner geometry from info
     geometry = create_pet_geometry(info)
@@ -58,7 +58,7 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
     
     # Process each image file from 3d_image_0.npy to 3d_image_169.npy
-    for i in range(67, 170):
+    for i in range(6, 170):
         image_filename = f"3d_image_{i}.npy"
         image_path = os.path.join(base_dir, image_filename)
         print(f"\nProcessing {image_filename} ...")
@@ -72,7 +72,7 @@ def main():
         # Run the simulation
         print("Starting simulation...")
         start_time = time.time()
-        events = simulator.simulate_events(num_events=num_events)
+        events = simulator.simulate_events(num_events=num_events, use_multiprocessing=False)
         end_time = time.time()
         print(f"Generated {len(events)} valid events in {end_time - start_time:.2f} seconds.")
         print("Events shape:", events.shape)

@@ -26,6 +26,7 @@ def process_batch(process_id: int, batch_size: int, shared_data: dict) -> np.nda
 class PETSimulator:
     def __init__(self, geometry, image: np.ndarray, voxel_size: float):
         self.geometry = geometry
+        # Use float32 to reduce memory usage
         self.image = image.astype(np.float32)
         self.voxel_size = voxel_size
         self._calculate_detector_positions()
@@ -51,8 +52,13 @@ class PETSimulator:
             self.detector_positions[start_idx:end_idx, 1] = self.geometry.radius * np.sin(angles)
             self.detector_positions[start_idx:end_idx, 2] = z_pos
 
-    def simulate_events(self, num_events: int) -> np.ndarray:
-        """Simulate events using multiprocessing."""
+    def simulate_events(self, num_events: int, use_multiprocessing: bool = True) -> np.ndarray:
+        """
+        Simulate events.
+        
+        If use_multiprocessing=True, use multiple processes (pool). 
+        Otherwise, run in a single process (loop).
+        """
         shared_data = {
             'image': self.image,
             'shape': self.image.shape,
@@ -64,14 +70,39 @@ class PETSimulator:
             'cumsum_prob': self.cumsum_prob
         }
 
-        num_processes = mp.cpu_count()
-        num_processes = min(mp.cpu_count(), 2)
-        batch_size = num_events // num_processes
+        if use_multiprocessing:
+            num_processes = min(mp.cpu_count(), 2)  # or some custom logic
+            batch_size = num_events // num_processes
 
-        with mp.Pool(num_processes) as pool:
-            process_batch_partial = partial(process_batch, batch_size=batch_size, shared_data=shared_data)
-            results = pool.map(process_batch_partial, range(num_processes))
-        total_events = np.vstack(results)
+            with mp.Pool(num_processes) as pool:
+                process_batch_partial = partial(
+                    process_batch,
+                    batch_size=batch_size,
+                    shared_data=shared_data
+                )
+                results = pool.map(process_batch_partial, range(num_processes))
+            total_events = np.vstack(results)
+        else:
+            # Single-process approach: just call simulate_batch directly in a loop.
+            from .numba_utils import simulate_batch  # or reuse the import at top
+            total_events_list = []
+            # We still split into "batches" to keep memory usage consistent, if desired.
+            # Or you can run one big call if you prefer.
+            batch_size = num_events
+            events = simulate_batch(
+                batch_size,
+                shared_data['image'],
+                shared_data['shape'],
+                shared_data['voxel_size'],
+                shared_data['detector_positions'],
+                shared_data['radius'],
+                shared_data['num_rings'],
+                shared_data['crystal_axial_spacing'],
+                shared_data['cumsum_prob']
+            )
+            total_events_list.append(events)
+            total_events = np.vstack(total_events_list)
+
         return total_events
 
     def save_detector_positions(self, filename: str):

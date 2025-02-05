@@ -8,42 +8,45 @@ from pet_simulator.utils import save_events, save_events_binary
 
 # PET scanner configuration information
 info = {
-    'min_rsector_difference': np.float64(0.0),
-    'crystal_length': np.float64(0.0),
-    'radius': np.float64(253.7067),
+    'min_rsector_difference': np.float32(0.0),
+    'crystal_length': np.float32(0.0),
+    'radius': np.float32(290.56),
     'crystalTransNr': 16,
-    'crystalTransSpacing': np.float64(5.535),
-    'crystalAxialNr': 9,
-    'crystalAxialSpacing': np.float64(6.6533),
+    'crystalTransSpacing': np.float32(4.03125),
+    'crystalAxialNr': 18,
+    'crystalAxialSpacing': np.float32(5.31556),
     'submoduleAxialNr': 1,
-    'submoduleAxialSpacing': np.float64(0.0),
+    'submoduleAxialSpacing': np.float32(0.0),
     'submoduleTransNr': 1,
-    'submoduleTransSpacing': np.float64(0.0),
+    'submoduleTransSpacing': np.float32(0.0),
     'moduleTransNr': 1,
-    'moduleTransSpacing': np.float64(0.0),
-    'moduleAxialNr': 6,
-    'moduleAxialSpacing': np.float64(89.82),
-    'rsectorTransNr': 18,
+    'moduleTransSpacing': np.float32(0.0),
+    'moduleAxialNr': 4,
+    'moduleAxialSpacing': np.float32(89.82),
+    'rsectorTransNr': 34,
     'rsectorAxialNr': 1,
     'TOF': 1,
-    'num_tof_bins': np.float64(29.0),
-    'tof_range': np.float64(735.7705),
-    'tof_fwhm': np.float64(57.71),
-    'NrCrystalsPerRing': 288,
-    'NrRings': 54,
+    'num_tof_bins': np.float32(29.0),
+    'tof_range': np.float32(735.7705),
+    'tof_fwhm': np.float32(57.71),
+    'NrCrystalsPerRing': 544,
+    'NrRings': 72,
     'firstCrystalAxis': 0
 }
 
+# 179.6391
+# 178
+
 def main():
     
-    num_events = int(1e8)
+    num_events = int(1.7e8)
     
     # Create PET scanner geometry from info
     geometry = create_pet_geometry(info)
     
     # Save the detector lookup table once.
     # (Since LUT depends only on geometry, a dummy image is sufficient.)
-    dummy_image = np.ones((1,1,1), dtype=np.float64)
+    dummy_image = np.ones((1,1,1), dtype=np.float32)
     simulator_for_lut = PETSimulator(geometry, dummy_image, voxel_size=2.78)
     simulator_for_lut.save_detector_positions("detector_lut.txt")
     
@@ -55,7 +58,7 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
     
     # Process each image file from 3d_image_0.npy to 3d_image_169.npy
-    for i in range(170):
+    for i in range(67, 170):
         image_filename = f"3d_image_{i}.npy"
         image_path = os.path.join(base_dir, image_filename)
         print(f"\nProcessing {image_filename} ...")
@@ -90,7 +93,25 @@ def main():
             print("Detector 1 position (x,y,z):", events[0, 2:5])
             print("Detector 2 position (x,y,z):", events[0, 5:8])
             print("Event position (x,y,z):", events[0, 8:11])
-
+            # calculate angle 
+            event_pos = events[0, 8:11]
+            det1_pos = events[0, 2:5]
+            det2_pos = events[0, 5:8]
+            
+            v1 = det1_pos - event_pos
+            v2 = det2_pos - event_pos
+            
+            norm1 = np.linalg.norm(v1)
+            norm2 = np.linalg.norm(v2)
+            
+            u1 = v1 / norm1
+            u2 = v2 / norm2
+            
+            dot = np.clip(np.dot(u1, u2), -1.0, 1.0)
+            angle = np.arccos(dot)
+            
+            deviation = abs(np.pi - angle)
+            print(f"Event: deviation = {deviation*180/np.pi:.4f} deg")
 
 if __name__ == "__main__":
     main()

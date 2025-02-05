@@ -17,7 +17,7 @@ print("Original image shape:", orig_image.shape)
 print("Reconstructed image shape:", recon_image.shape)
 
 # Select a slice index (middle slice along the z-axis).
-slice_index = orig_image.shape[2] // 2 + 60
+slice_index = orig_image.shape[2] // 2 + 12
 
 # Create a figure with two subplots for side-by-side comparison.
 fig, axs = plt.subplots(1, 2, figsize=(12, 6))

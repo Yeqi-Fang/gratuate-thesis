@@ -26,7 +26,7 @@ def process_batch(process_id: int, batch_size: int, shared_data: dict) -> np.nda
 class PETSimulator:
     def __init__(self, geometry, image: np.ndarray, voxel_size: float):
         self.geometry = geometry
-        self.image = image.astype(np.float64)
+        self.image = image.astype(np.float32)
         self.voxel_size = voxel_size
         self._calculate_detector_positions()
         # Pre-calculate probability distribution for event generation
@@ -41,10 +41,10 @@ class PETSimulator:
         angles = np.linspace(0, 2 * np.pi, self.geometry.crystals_per_ring, endpoint=False)
         self.detector_positions = np.zeros(
             (self.geometry.num_rings * self.geometry.crystals_per_ring, 3),
-            dtype=np.float64
+            dtype=np.float32
         )
         for ring in range(self.geometry.num_rings):
-            z_pos = (ring - self.geometry.num_rings / 2) * self.geometry.crystal_axial_spacing
+            z_pos = (ring - (self.geometry.num_rings - 1) / 2) * self.geometry.crystal_axial_spacing
             start_idx = ring * self.geometry.crystals_per_ring
             end_idx = (ring + 1) * self.geometry.crystals_per_ring
             self.detector_positions[start_idx:end_idx, 0] = self.geometry.radius * np.cos(angles)
@@ -65,6 +65,7 @@ class PETSimulator:
         }
 
         num_processes = mp.cpu_count()
+        num_processes = min(mp.cpu_count(), 2)
         batch_size = num_events // num_processes
 
         with mp.Pool(num_processes) as pool:

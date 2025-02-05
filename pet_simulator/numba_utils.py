@@ -29,21 +29,48 @@ def find_detector_intersection(pos: np.ndarray, direction: np.ndarray,
     t = (-b + np.sqrt(discriminant)) / (2*a)
     intersection = pos + t * direction
 
-    min_dist = np.inf
-    nearest_detector = -1
-
     if abs(intersection[2]) > (num_rings * crystal_axial_spacing / 2):
         return -1
 
-    for i in range(len(detector_positions)):
-        dist = ((detector_positions[i, 0] - intersection[0])**2 +
-                (detector_positions[i, 1] - intersection[1])**2 +
-                (detector_positions[i, 2] - intersection[2])**2)
-        if dist < min_dist:
-            min_dist = dist
-            nearest_detector = i
+    # min_dist = np.inf
+    # nearest_detector = -1
 
-    return nearest_detector
+    # for i in range(len(detector_positions)):
+    #     dist = ((detector_positions[i, 0] - intersection[0])**2 +
+    #             (detector_positions[i, 1] - intersection[1])**2 +
+    #             (detector_positions[i, 2] - intersection[2])**2)
+    #     if dist < min_dist:
+    #         min_dist = dist
+    #         nearest_detector = i
+
+    # Compute the ring index from the z coordinate.
+    # Detector z positions are computed as:
+    #    z = (ring - (num_rings - 1)/2) * crystal_axial_spacing
+    ring = int(np.round(intersection[2] / crystal_axial_spacing + (num_rings - 1) / 2))
+    
+    # Determine the number of crystals per ring from the detector_positions array.
+    crystals_per_ring = detector_positions.shape[0] // int(num_rings)
+    
+    # Compute the azimuthal angle of the intersection point.
+    phi = np.arctan2(intersection[1], intersection[0])
+    if phi < 0:
+        phi += 2 * np.pi
+
+    # The detectors in each ring are uniformly distributed:
+    #    angle_step = 2*pi / crystals_per_ring
+    # Compute the index within the ring:
+    det_in_ring = int(np.round(phi / (2 * np.pi / crystals_per_ring))) % crystals_per_ring
+
+    nearest_detector2 = ring * crystals_per_ring + det_in_ring
+    # Vectorized computation of squared distances from intersection to all detectors.
+    # diff = detector_positions - intersection  # (N_detectors, 3)
+    # dists = diff[:, 0]**2 + diff[:, 1]**2 + diff[:, 2]**2
+    # nearest_detector = np.argmin(dists)
+
+    # if nearest_detector != nearest_detector2:
+    #     print(f"Error: {nearest_detector} != {nearest_detector2}")
+    
+    return nearest_detector2
 
 @njit
 def simulate_batch(batch_size: int, image: np.ndarray, shape: Tuple[int, int, int],
@@ -58,7 +85,7 @@ def simulate_batch(batch_size: int, image: np.ndarray, shape: Tuple[int, int, in
       - detector2_x, detector2_y, detector2_z (columns 5-7)
       - event_x, event_y, event_z (columns 8-10)
     """
-    events = np.zeros((batch_size, 11), dtype=np.float64)
+    events = np.zeros((batch_size, 11), dtype=np.float32)
     valid_count = 0
 
     for _ in range(batch_size):
@@ -66,12 +93,13 @@ def simulate_batch(batch_size: int, image: np.ndarray, shape: Tuple[int, int, in
         rand_val = np.random.random()
         idx = np.searchsorted(cumsum_prob, rand_val)
         z, y, x = manual_unravel_index(idx, shape)
+        # z, y, x = np.unravel_index(idx, shape)
 
         # Convert voxel indices to physical coordinates
-        x_pos = (x - shape[2] / 2) * voxel_size
-        y_pos = (y - shape[1] / 2) * voxel_size
-        z_pos = (z - shape[0] / 2) * voxel_size
-        pos = np.array([x_pos, y_pos, z_pos], dtype=np.float64)
+        x_pos = (x - (shape[2] - 1) / 2) * voxel_size
+        y_pos = (y - (shape[1] - 1) / 2) * voxel_size
+        z_pos = (z - (shape[0] - 1) / 2) * voxel_size
+        pos = np.array([x_pos, y_pos, z_pos], dtype=np.float32)
 
         # Generate a random direction and its opposite
         phi = np.random.uniform(0, 2 * np.pi)
@@ -80,8 +108,8 @@ def simulate_batch(batch_size: int, image: np.ndarray, shape: Tuple[int, int, in
         
         dir1 = np.array([sin_theta * np.cos(phi),
                          sin_theta * np.sin(phi),
-                         cos_theta], dtype=np.float64)
-        dir2 = -dir1
+                         cos_theta], dtype=np.float32)
+        dir2 = - dir1
 
         # Find intersections with the detector ring
         det1 = find_detector_intersection(pos, dir1, detector_positions, radius,

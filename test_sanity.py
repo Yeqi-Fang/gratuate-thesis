@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Paths to the images.
-orig_path = r"D:\Datasets\dataset\train_npy\3d_image_8.npy"
-recon_path = r"reconstruction_npy_full_train_scaled\reconstructed_8_128x128x128.npy"
+orig_path = r"D:\Datasets\dataset\test_npy\3d_image_10.npy"
+recon_path = r"reconstruction_npy_full_test\400000000\reconstructed_index10_num400000000.npy"
 
 # Load the images.
 orig_image = np.load(orig_path)

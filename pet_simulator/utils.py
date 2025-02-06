@@ -41,22 +41,24 @@ def save_events_binary(filename: str, events: np.ndarray, save_full_data: bool =
     if save_full_data:
         dtype_full = np.dtype([
             ('det1_id', np.int16), ('det2_id', np.int16),
-            ('det1_x', np.float32), ('det1_y', np.float32), ('det1_z', np.float32),
-            ('det2_x', np.float32), ('det2_y', np.float32), ('det2_z', np.float32),
             ('event_x', np.float32), ('event_y', np.float32), ('event_z', np.float32)
         ])
         structured_array = np.empty(events.shape[0], dtype=dtype_full)
         structured_array['det1_id'] = events[:, 0].astype(np.int16)
         structured_array['det2_id'] = events[:, 1].astype(np.int16)
-        structured_array['det1_x'] = events[:, 2].astype(np.float32)
-        structured_array['det1_y'] = events[:, 3].astype(np.float32)
-        structured_array['det1_z'] = events[:, 4].astype(np.float32)
-        structured_array['det2_x'] = events[:, 5].astype(np.float32)
-        structured_array['det2_y'] = events[:, 6].astype(np.float32)
-        structured_array['det2_z'] = events[:, 7].astype(np.float32)
-        structured_array['event_x'] = events[:, 8].astype(np.float32)
-        structured_array['event_y'] = events[:, 9].astype(np.float32)
-        structured_array['event_z'] = events[:, 10].astype(np.float32)
+        structured_array['event_x'] = events[:, 2].astype(np.float32)
+        structured_array['event_y'] = events[:, 3].astype(np.float32)
+        structured_array['event_z'] = events[:, 4].astype(np.float32)
+        
+        # lut = np.loadtxt("detector_lut.txt", skiprows=1, dtype=np.float32)
+        # det1_pos = lut[int(events[0, 0]), 1:4]
+        # det2_pos = lut[int(events[0, 1]), 1:4]
+        # structured_array['det1_x'] = det1_pos[0].astype(np.float32)
+        # structured_array['det1_y'] = det1_pos[1].astype(np.float32)
+        # structured_array['det1_z'] = det1_pos[2].astype(np.float32)
+        # structured_array['det2_x'] = det2_pos[0].astype(np.float32)
+        # structured_array['det2_y'] = det2_pos[1].astype(np.float32)
+        # structured_array['det2_z'] = det2_pos[2].astype(np.float32)
     else:
         dtype_minimal = np.dtype([
             ('det1_id', np.int16), ('det2_id', np.int16)

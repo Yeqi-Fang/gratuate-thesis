@@ -85,7 +85,7 @@ def simulate_batch(batch_size: int, image: np.ndarray, shape: Tuple[int, int, in
       - detector2_x, detector2_y, detector2_z (columns 5-7)
       - event_x, event_y, event_z (columns 8-10)
     """
-    events = np.zeros((batch_size, 11), dtype=np.float32)
+    events = np.zeros((batch_size, 5), dtype=np.float32)
     valid_count = 0
 
     for _ in range(batch_size):
@@ -120,9 +120,9 @@ def simulate_batch(batch_size: int, image: np.ndarray, shape: Tuple[int, int, in
             if det2 >= 0:
                 events[valid_count, 0] = det1
                 events[valid_count, 1] = det2
-                events[valid_count, 2:5] = detector_positions[det1]
-                events[valid_count, 5:8] = detector_positions[det2]
-                events[valid_count, 8:11] = pos
+                events[valid_count, 2:5] = pos
+                # events[valid_count, 5:8] = detector_positions[det1]
+                # events[valid_count, 8:11] = detector_positions[det2]
                 valid_count += 1
 
     return events[:valid_count]

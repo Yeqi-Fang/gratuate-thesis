@@ -58,7 +58,7 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
     
     # Process each image file from 3d_image_0.npy to 3d_image_169.npy
-    for i in range(170):
+    for i in range(33, 36):
         image_filename = f"3d_image_{i}.npy"
         image_path = os.path.join(base_dir, image_filename)
         print(f"\nProcessing {image_filename} ...")
@@ -72,7 +72,7 @@ def main():
         # Run the simulation
         print("Starting simulation...")
         start_time = time.time()
-        events = simulator.simulate_events(num_events=num_events, use_multiprocessing=False)
+        events = simulator.simulate_events(num_events=num_events, use_multiprocessing=True)
         end_time = time.time()
         print(f"Generated {len(events)} valid events in {end_time - start_time:.2f} seconds.")
         print("Events shape:", events.shape)
@@ -87,16 +87,20 @@ def main():
         
         # Optionally, print a sample event.
         if len(events) > 0:
+            # get detector positions from LUT
+            lut = np.loadtxt("detector_lut.txt", skiprows=1, dtype=np.float32)
+            det1_pos = lut[int(events[0, 0]), 1:4]
+            det2_pos = lut[int(events[0, 1]), 1:4]
+            event_pos = events[0, 2:5]
             print("\nSample event (with positions):")
             print("Detector 1 ID:", events[0, 0])
             print("Detector 2 ID:", events[0, 1])
-            print("Detector 1 position (x,y,z):", events[0, 2:5])
-            print("Detector 2 position (x,y,z):", events[0, 5:8])
-            print("Event position (x,y,z):", events[0, 8:11])
+            print("Detector 1 position (x,y,z):", det1_pos)
+            print("Detector 2 position (x,y,z):", det2_pos)
+            print("Event position (x,y,z):", event_pos)
             # calculate angle 
-            event_pos = events[0, 8:11]
-            det1_pos = events[0, 2:5]
-            det2_pos = events[0, 5:8]
+            # det1_pos = events[0, 2:5]
+            # det2_pos = events[0, 5:8]
             
             v1 = det1_pos - event_pos
             v2 = det2_pos - event_pos

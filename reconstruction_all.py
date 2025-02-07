@@ -24,29 +24,8 @@ import glob
 import numpy as np
 import torch
 import time
-
-from pytomography.metadata import ObjectMeta
-from pytomography.metadata.PET import PETLMProjMeta
-from pytomography.projectors.PET import PETLMSystemMatrix
-from pytomography.algorithms import OSEM
-from pytomography.likelihoods import PoissonLogLikelihood
-from pytomography.transforms.shared import GaussianFilter
-
-from outlier_detection import (
-    global_outlier_detection,
-    local_outlier_detection,
-    edge_outlier_detection,
-    combined_outlier_detection,
-    analyze_outlier_masks,
-    remove_outliers_iteratively
-)
-
-import os
-import numpy as np
-import torch
 import matplotlib.pyplot as plt
 
-# pytomography modules:
 from pytomography.metadata import ObjectMeta
 from pytomography.metadata.PET import PETLMProjMeta
 from pytomography.projectors.PET import PETLMSystemMatrix
@@ -54,7 +33,6 @@ from pytomography.algorithms import OSEM
 from pytomography.likelihoods import PoissonLogLikelihood
 from pytomography.transforms.shared import GaussianFilter
 
-# Outlier detection imports (replace with your actual file names/paths)
 from outlier_detection import (
     global_outlier_detection,
     local_outlier_detection,

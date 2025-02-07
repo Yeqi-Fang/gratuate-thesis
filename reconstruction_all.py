@@ -71,7 +71,8 @@ def reconstruct_volume_for_lmf(lmf_file: str,
                                extended_size: int = 128,
                                n_iters: int = 2,
                                n_subsets: int = 34,
-                               psf_fwhm_mm: float = 4.5) -> np.ndarray:
+                               psf_fwhm_mm: float = 4.5,
+                               detector_outlier: bool=True) -> np.ndarray:
     """
     Reconstruct a volume from a single minimal listmode (.lmf) file using OSEM,
     then apply outlier detection and iterative removal.
@@ -190,14 +191,17 @@ def reconstruct_volume_for_lmf(lmf_file: str,
     # 10. Remove Outliers Iteratively (global + local + optional edge).
     # -------------------------------------------------------------------------
     # After the iterative removal, we get a "cleaned" image with outliers replaced.
-    cleaned_image = remove_outliers_iteratively(
-        recon_np_scaled,
-        max_iters=10,
-        global_factor=1.8, 
-        global_percentile=99.0,
-        local_window=3,
-        local_sigma=3.0
-    )
+    if detector_outlier:
+        cleaned_image = remove_outliers_iteratively(
+            recon_np_scaled,
+            max_iters=10,
+            global_factor=1.8, 
+            global_percentile=99.0,
+            local_window=3,
+            local_sigma=3.0
+        )
+    else:
+        cleaned_image = recon_np_scaled
 
     # Final scale to [0,1].
     cleaned_min = cleaned_image.min()
@@ -227,6 +231,7 @@ def main():
                         help="Path to the detector LUT file.")
     parser.add_argument("--output_dir", type=str, default="reconstruction_npy_full",
                         help="Folder to save reconstructed volumes.")
+    parser.add_argument("--outlier", type=bool, default=True)
     args = parser.parse_args()
 
     
@@ -275,7 +280,8 @@ def main():
             extended_size=extended_size,
             n_iters=n_iters,
             n_subsets=n_subsets,
-            psf_fwhm_mm=psf_fwhm_mm
+            psf_fwhm_mm=psf_fwhm_mm,
+            detector_outlier=args.outlier
         )
 
         # Save

@@ -39,8 +39,8 @@ info = {
 
 def main():
     
-    num_events = int(4e8)
-    save_events_pos = True
+    num_events = int(1e9)
+    save_events_pos = False
     # Create PET scanner geometry from info
     geometry = create_pet_geometry(info)
     
@@ -58,7 +58,7 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
     
     # Process each image file from 3d_image_0.npy to 3d_image_169.npy
-    for i in range(1, 36):
+    for i in range(36):
         image_filename = f"3d_image_{i}.npy"
         image_path = os.path.join(base_dir, image_filename)
         print(f"\nProcessing {image_filename} ...")

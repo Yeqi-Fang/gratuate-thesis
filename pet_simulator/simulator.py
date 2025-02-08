@@ -20,7 +20,8 @@ def process_batch(process_id: int, batch_size: int, shared_data: dict) -> np.nda
         shared_data['radius'],
         shared_data['num_rings'],
         shared_data['crystal_axial_spacing'],
-        shared_data['cumsum_prob']
+        shared_data['cumsum_prob'],
+        shared_data['save_events_pos']
     )
 
 class PETSimulator:

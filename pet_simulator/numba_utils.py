@@ -88,7 +88,7 @@ def simulate_batch(batch_size: int, image: np.ndarray, shape: Tuple[int, int, in
     if save_events_pos:
         events = np.zeros((batch_size, 5), dtype=np.float32)
     else:
-        events = np.zeros((batch_size, 2), dtype=np.int32)
+        events = np.zeros((batch_size, 2), dtype=np.float32)
     valid_count = 0
 
     for _ in range(batch_size):

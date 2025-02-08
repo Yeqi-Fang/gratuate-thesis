@@ -76,7 +76,7 @@ def find_detector_intersection(pos: np.ndarray, direction: np.ndarray,
 def simulate_batch(batch_size: int, image: np.ndarray, shape: Tuple[int, int, int],
                    voxel_size: float, detector_positions: np.ndarray, radius: float,
                    num_rings: int, crystal_axial_spacing: float,
-                   cumsum_prob: np.ndarray) -> np.ndarray:
+                   cumsum_prob: np.ndarray, save_events_pos: bool) -> np.ndarray:
     """
     Simulate a batch of events.
     Returns an array with shape (N, 11) containing:
@@ -85,7 +85,10 @@ def simulate_batch(batch_size: int, image: np.ndarray, shape: Tuple[int, int, in
       - detector2_x, detector2_y, detector2_z (columns 5-7)
       - event_x, event_y, event_z (columns 8-10)
     """
-    events = np.zeros((batch_size, 5), dtype=np.float32)
+    if save_events_pos:
+        events = np.zeros((batch_size, 5), dtype=np.float32)
+    else:
+        events = np.zeros((batch_size, 2), dtype=np.int32)
     valid_count = 0
 
     for _ in range(batch_size):
@@ -118,11 +121,15 @@ def simulate_batch(batch_size: int, image: np.ndarray, shape: Tuple[int, int, in
             det2 = find_detector_intersection(pos, dir2, detector_positions, radius,
                                               num_rings, crystal_axial_spacing)
             if det2 >= 0:
-                events[valid_count, 0] = det1
-                events[valid_count, 1] = det2
-                events[valid_count, 2:5] = pos
-                # events[valid_count, 5:8] = detector_positions[det1]
-                # events[valid_count, 8:11] = detector_positions[det2]
+                if save_events_pos:
+                    events[valid_count, 0] = det1
+                    events[valid_count, 1] = det2
+                    events[valid_count, 2:5] = pos
+                else:
+                    events[valid_count, 0] = det1
+                    events[valid_count, 1] = det2
+                    # events[valid_count, 5:8] = detector_positions[det1]
+                    # events[valid_count, 8:11] = detector_positions[det2]
                 valid_count += 1
 
     return events[:valid_count]

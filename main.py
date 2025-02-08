@@ -11,26 +11,26 @@ info = {
     'min_rsector_difference': np.float32(0.0),
     'crystal_length': np.float32(0.0),
     'radius': np.float32(290.56),
-    'crystalTransNr': 16,
+    'crystalTransNr': 13,
     'crystalTransSpacing': np.float32(4.03125),
-    'crystalAxialNr': 18,
-    'crystalAxialSpacing': np.float32(5.31556),
+    'crystalAxialNr': 7,
+    'crystalAxialSpacing': np.float32(5.36556),
     'submoduleAxialNr': 1,
     'submoduleAxialSpacing': np.float32(0.0),
     'submoduleTransNr': 1,
     'submoduleTransSpacing': np.float32(0.0),
     'moduleTransNr': 1,
     'moduleTransSpacing': np.float32(0.0),
-    'moduleAxialNr': 4,
+    'moduleAxialNr': 6,
     'moduleAxialSpacing': np.float32(89.82),
-    'rsectorTransNr': 34,
+    'rsectorTransNr': 32,
     'rsectorAxialNr': 1,
     'TOF': 1,
     'num_tof_bins': np.float32(29.0),
     'tof_range': np.float32(735.7705),
     'tof_fwhm': np.float32(57.71),
-    'NrCrystalsPerRing': 544,
-    'NrRings': 72,
+    'NrCrystalsPerRing': 416,
+    'NrRings': 42,
     'firstCrystalAxis': 0
 }
 
@@ -40,7 +40,7 @@ info = {
 def main():
     
     num_events = int(4e8)
-    
+    save_events_pos = True
     # Create PET scanner geometry from info
     geometry = create_pet_geometry(info)
     
@@ -51,23 +51,24 @@ def main():
     simulator_for_lut.save_detector_positions("detector_lut.txt")
     
     # Define the base directory where the 3D image files are stored.
-    base_dir = r"D:\Datasets\dataset\test_npy"
+    base_dir = r"D:\Datasets\dataset\test_npy_crop"
     
     # Create an output directory for listmode data if it doesn't exist.
-    output_dir = f"listmode_test/{num_events:d}"
+    output_dir = f"listmode_test/{num_events:d}/cropped"
     os.makedirs(output_dir, exist_ok=True)
     
     # Process each image file from 3d_image_0.npy to 3d_image_169.npy
-    for i in range(33, 36):
+    for i in range(1, 36):
         image_filename = f"3d_image_{i}.npy"
         image_path = os.path.join(base_dir, image_filename)
         print(f"\nProcessing {image_filename} ...")
         
         # Load the 3D image (which acts as the probability density distribution)
         image = np.load(image_path)
+        print("Image shape:", image.shape)
         
         # Create the simulator with the current image and voxel size
-        simulator = PETSimulator(geometry, image, voxel_size=2.78)
+        simulator = PETSimulator(geometry, image, voxel_size=2.78, save_events_pos=save_events_pos)
         
         # Run the simulation
         print("Starting simulation...")
@@ -80,13 +81,13 @@ def main():
         # Save events in binary .lmf format (minimal and full)
         minimal_file = os.path.join(output_dir, f"listmode_data_minimal_{i}_{num_events}.lmf")
         save_events_binary(minimal_file, events, save_full_data=False)
-        a = np.random.rand()
-        if a < 0.1:
-            full_file = os.path.join(output_dir, f"listmode_data_full_{i}_{num_events}.lmf")
-            save_events_binary(full_file, events, save_full_data=True)
+        # a = np.random.rand()
+        # if a < 0.1:
+        #     full_file = os.path.join(output_dir, f"listmode_data_full_{i}_{num_events}.lmf")
+        #     save_events_binary(full_file, events, save_full_data=True)
         
         # Optionally, print a sample event.
-        if len(events) > 0:
+        if len(events) > 0 and save_events_pos:
             # get detector positions from LUT
             lut = np.loadtxt("detector_lut.txt", skiprows=1, dtype=np.float32)
             det1_pos = lut[int(events[0, 0]), 1:4]

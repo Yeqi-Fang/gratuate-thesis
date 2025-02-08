@@ -24,11 +24,12 @@ def process_batch(process_id: int, batch_size: int, shared_data: dict) -> np.nda
     )
 
 class PETSimulator:
-    def __init__(self, geometry, image: np.ndarray, voxel_size: float):
+    def __init__(self, geometry, image: np.ndarray, voxel_size: float, save_events_pos: bool = False):
         self.geometry = geometry
         # Use float32 to reduce memory usage
         self.image = image.astype(np.float32)
         self.voxel_size = voxel_size
+        self.save_events_pos = save_events_pos
         self._calculate_detector_positions()
         # Pre-calculate probability distribution for event generation
         total_activity = np.sum(self.image)
@@ -67,7 +68,8 @@ class PETSimulator:
             'radius': self.geometry.radius,
             'num_rings': self.geometry.num_rings,
             'crystal_axial_spacing': self.geometry.crystal_axial_spacing,
-            'cumsum_prob': self.cumsum_prob
+            'cumsum_prob': self.cumsum_prob,
+            'save_events_pos': self.save_events_pos
         }
 
         if use_multiprocessing:
@@ -98,7 +100,8 @@ class PETSimulator:
                 shared_data['radius'],
                 shared_data['num_rings'],
                 shared_data['crystal_axial_spacing'],
-                shared_data['cumsum_prob']
+                shared_data['cumsum_prob'],
+                shared_data['save_events_pos']
             )
             total_events_list.append(events)
             total_events = np.vstack(total_events_list)

@@ -50,7 +50,7 @@ def reconstruct_volume_for_lmf(lmf_file: str,
                                n_iters: int = 2,
                                n_subsets: int = 34,
                                psf_fwhm_mm: float = 4.5,
-                               detector_outlier: bool=True) -> np.ndarray:
+                               detector_outlier: str = "True") -> np.ndarray:
     """
     Reconstruct a volume from a single minimal listmode (.lmf) file using OSEM,
     then apply outlier detection and iterative removal.
@@ -169,7 +169,7 @@ def reconstruct_volume_for_lmf(lmf_file: str,
     # 10. Remove Outliers Iteratively (global + local + optional edge).
     # -------------------------------------------------------------------------
     # After the iterative removal, we get a "cleaned" image with outliers replaced.
-    if detector_outlier:
+    if detector_outlier == "True":
         cleaned_image = remove_outliers_iteratively(
             recon_np_scaled,
             max_iters=10,
@@ -209,7 +209,7 @@ def main():
                         help="Path to the detector LUT file.")
     parser.add_argument("--output_dir", type=str, default="reconstruction_npy_full",
                         help="Folder to save reconstructed volumes.")
-    parser.add_argument("--outlier", type=bool, default=True)
+    parser.add_argument("--outlier", type=str, default="True")
     args = parser.parse_args()
 
     

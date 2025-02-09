@@ -235,15 +235,15 @@ class SinogramReconstructionNet(nn.Module):
 if __name__ == '__main__':
     # Assume each sinogram chunk has shape (N1/2, N1+1) for a single channel.
     # For example, let H = 224, W = 449, and we have 64 such chunks.
-    batch_size = 2
+    batch_size = 1
     seq_len = 64
-    H, W = 224, 449
-    dummy_input = torch.randn(batch_size, seq_len, 1, H, W, dtype=torch.float32)
+    H, W = 112, 225
+    dummy_input = torch.randn(batch_size, seq_len, seq_len, H, W, dtype=torch.float32)
     
     # Create the model instance.
-    model = SinogramReconstructionNet(input_channels=1,
+    model = SinogramReconstructionNet(input_channels=64,
                                       lstm_hidden_dim=16,
-                                      unet_out_channels=1,
+                                      unet_out_channels=64,
                                       lstm_kernel_size=3,
                                       bilinear=True)
     # Forward pass.

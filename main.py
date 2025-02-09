@@ -51,14 +51,14 @@ def main():
     simulator_for_lut.save_detector_positions("detector_lut.txt")
     
     # Define the base directory where the 3D image files are stored.
-    base_dir = r"D:\Datasets\dataset\train_npy_crop"
+    base_dir = r"D:\Datasets\dataset\test_npy_crop"
     
     # Create an output directory for listmode data if it doesn't exist.
-    output_dir = rf"E:\Datasets\listmode_train\{num_events:d}\cropped"
+    output_dir = rf"E:\Datasets\listmode_test\{num_events:d}\cropped"
     os.makedirs(output_dir, exist_ok=True)
     
     # Process each image file from 3d_image_0.npy to 3d_image_169.npy
-    for i in range(170):
+    for i in range(22, 36):
         image_filename = f"3d_image_{i}.npy"
         image_path = os.path.join(base_dir, image_filename)
         print(f"\nProcessing {image_filename} ...")

@@ -219,10 +219,14 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
 
     # Recursively find all .lmf files
-    pattern = os.path.join(args.lmf_root, "*minimal*.npz")
+    lmf_root = os.path.normpath(args.lmf_root)
+    print(lmf_root)
+    print(os.listdir(lmf_root))
+    pattern = os.path.join(lmf_root, "*minimal*.npz")
+    print(pattern)
     lmf_files = sorted(glob.glob(pattern, recursive=False))
 
-    print(f"Found {len(lmf_files)} .npz files under {args.lmf_root}.")
+    print(f"Found {len(lmf_files)} .npz files under {lmf_root}.")
     if not lmf_files:
         return
 

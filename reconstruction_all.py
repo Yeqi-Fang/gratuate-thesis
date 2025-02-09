@@ -109,7 +109,7 @@ def reconstruct_volume_for_lmf(lmf_file: str,
     # -------------------------------------------------------------------------
     object_meta = ObjectMeta(
         dr=(voxel_size, voxel_size, voxel_size),
-        shape=(extended_size, extended_size, extended_size)
+        shape=(128, 128, 80)
     )
 
     # -------------------------------------------------------------------------

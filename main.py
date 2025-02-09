@@ -51,14 +51,14 @@ def main():
     simulator_for_lut.save_detector_positions("detector_lut.txt")
     
     # Define the base directory where the 3D image files are stored.
-    base_dir = r"D:\Datasets\dataset\test_npy_crop"
+    base_dir = r"D:\Datasets\dataset\train_npy_crop"
     
     # Create an output directory for listmode data if it doesn't exist.
-    output_dir = f"listmode_test/{num_events:d}/cropped"
+    output_dir = rf"E:\Datasets\listmode_train\{num_events:d}\cropped"
     os.makedirs(output_dir, exist_ok=True)
     
     # Process each image file from 3d_image_0.npy to 3d_image_169.npy
-    for i in range(36):
+    for i in range(170):
         image_filename = f"3d_image_{i}.npy"
         image_path = os.path.join(base_dir, image_filename)
         print(f"\nProcessing {image_filename} ...")
@@ -79,7 +79,7 @@ def main():
         print("Events shape:", events.shape)
         
         # Save events in binary .lmf format (minimal and full)
-        minimal_file = os.path.join(output_dir, f"listmode_data_minimal_{i}_{num_events}.lmf")
+        minimal_file = os.path.join(output_dir, f"listmode_data_minimal_{i}_{num_events}")
         save_events_binary(minimal_file, events, save_full_data=False)
         # a = np.random.rand()
         # if a < 0.1:

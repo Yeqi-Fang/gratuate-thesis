@@ -1,5 +1,6 @@
 # pet_simulator/utils.py
 import numpy as np
+import h5py
 
 def save_detector_lut(filename: str, detector_positions: np.ndarray):
     """
@@ -40,12 +41,12 @@ def save_events_binary(filename: str, events: np.ndarray, save_full_data: bool =
     """
     if save_full_data:
         dtype_full = np.dtype([
-            ('det1_id', np.int16), ('det2_id', np.int16),
+            ('det1_id', np.uint16), ('det2_id', np.uint16),
             ('event_x', np.float32), ('event_y', np.float32), ('event_z', np.float32)
         ])
         structured_array = np.empty(events.shape[0], dtype=dtype_full)
-        structured_array['det1_id'] = events[:, 0].astype(np.int16)
-        structured_array['det2_id'] = events[:, 1].astype(np.int16)
+        structured_array['det1_id'] = events[:, 0].astype(np.uint16)
+        structured_array['det2_id'] = events[:, 1].astype(np.uint16)
         structured_array['event_x'] = events[:, 2].astype(np.float32)
         structured_array['event_y'] = events[:, 3].astype(np.float32)
         structured_array['event_z'] = events[:, 4].astype(np.float32)
@@ -61,9 +62,14 @@ def save_events_binary(filename: str, events: np.ndarray, save_full_data: bool =
         # structured_array['det2_z'] = det2_pos[2].astype(np.float32)
     else:
         dtype_minimal = np.dtype([
-            ('det1_id', np.int16), ('det2_id', np.int16)
+            ('det1_id', np.uint16), ('det2_id', np.uint16)
         ])
         structured_array = np.empty(events.shape[0], dtype=dtype_minimal)
-        structured_array['det1_id'] = events[:, 0].astype(np.int16)
-        structured_array['det2_id'] = events[:, 1].astype(np.int16)
-    structured_array.tofile(filename)
+        structured_array['det1_id'] = events[:, 0].astype(np.uint16)
+        structured_array['det2_id'] = events[:, 1].astype(np.uint16)
+        
+    # with h5py.File(f"{filename}.h5", 'w') as f:
+    #     # 创建数据集时启用gzip压缩，调整chunks参数优化压缩率
+    #     dset = f.create_dataset('listmode', data=structured_array, chunks=True, compression='gzip', compression_opts=9)
+    np.savez_compressed(f"{filename}.npz", listmode=structured_array)
+    # structured_array.tofile(f"{filename}.lmf")

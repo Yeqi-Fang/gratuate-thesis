@@ -74,8 +74,10 @@ def reconstruct_volume_for_lmf(lmf_file: str,
     # -------------------------------------------------------------------------
     # 1. Read the minimal listmode events from the .lmf file.
     # -------------------------------------------------------------------------
-    dtype_minimal = np.dtype([('det1_id', np.int16), ('det2_id', np.int16)])
-    events_np = np.fromfile(lmf_file, dtype=dtype_minimal)
+    # dtype_minimal = np.dtype([('det1_id', np.uint16), ('det2_id', np.uint16)])
+    # events_np = np.fromfile(lmf_file, dtype=dtype_minimal)
+    with np.load(lmf_file) as f:
+        events_np = f['listmode']
     # Convert to a 2D array of shape (N, 2)
     detector_ids_np = np.column_stack((events_np['det1_id'], events_np['det2_id']))
     # Convert to torch.Tensor
@@ -204,7 +206,7 @@ def main():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--lmf_root", type=str, default="listmode_test",
-                        help="Root folder containing subfolders with .lmf files.")
+                        help="Root folder containing subfolders with .npz files.")
     parser.add_argument("--lut_file", type=str, default="detector_lut.txt",
                         help="Path to the detector LUT file.")
     parser.add_argument("--output_dir", type=str, default="reconstruction_npy_full",
@@ -217,16 +219,16 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
 
     # Recursively find all .lmf files
-    pattern = os.path.join(args.lmf_root, "*minimal*.lmf")
+    pattern = os.path.join(args.lmf_root, "*minimal*.npz")
     lmf_files = sorted(glob.glob(pattern, recursive=False))
 
-    print(f"Found {len(lmf_files)} .lmf files under {args.lmf_root}.")
+    print(f"Found {len(lmf_files)} .npz files under {args.lmf_root}.")
     if not lmf_files:
         return
 
     # Regex to parse filename of the form: listmode_data_full_{index}_{num}.lmf
     # e.g.: listmode_data_full_15_400000000.lmf
-    filename_regex = re.compile(r"listmode_data_minimal_(\d+)_(\d+)\.lmf")
+    filename_regex = re.compile(r"listmode_data_minimal_(\d+)_(\d+)\.npz")
 
     # Reconstruction parameters
     voxel_size = 2.78

@@ -237,7 +237,7 @@ if __name__ == '__main__':
     # For example, let H = 224, W = 449, and we have 64 such chunks.
     batch_size = 2
     seq_len = 64
-    H, W = 112, 225
+    H, W = 224, 449
     dummy_input = torch.randn(batch_size, seq_len, 1, H, W, dtype=torch.float32)
     
     # Create the model instance.

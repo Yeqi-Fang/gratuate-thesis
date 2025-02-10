@@ -284,3 +284,4 @@ if __name__ == "__main__":
 
 
 # python reconstruction_all.py --lmf_root listmode_test/400000000 --lut_file detector_lut.txt --output_dir reconstruction_npy_full_test/400000000
+# python reconstruction_all.py --lmf_root E:\\Datasets\\listmode_train\\1000000000\\cropped --lut_file detector_lut.txt --output_dir reconstruction_npy_full_train/1000000000/filtered --outlier False

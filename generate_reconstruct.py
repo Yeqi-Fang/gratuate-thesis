@@ -109,23 +109,20 @@ def main():
         minimal_file = os.path.join(lmf_output_dir, f"listmode_data_minimal_{i}_{num_events}")
         save_events_binary(minimal_file, events, save_full_data=False)
 
-        filename_regex = re.compile(r"listmode_data_minimal_(\d+)_(\d+)\.npz")
-        print(f"\n[{i+1}/{len(lmf_output_dir)}] Processing {lmf_output_dir}")
-        start_time = time.time()
-        
-        pattern = os.path.join(lmf_output_dir, "*minimal*.npz")
-        lmf_files = list(glob.glob(pattern, recursive=False))
-        assert len(lmf_files) == 1
-        lmf_path = lmf_files[0]
-        
-        base_name = os.path.basename(lmf_output_dir)
-        match = filename_regex.match(base_name)
-        if match:
-            index_str, num_str = match.groups()
-            out_name = f"reconstructed_index{index_str}_num{num_str}.npz"
-        else:
-            # fallback if not matching
-            out_name = "reconstructed_" + os.path.splitext(base_name)[0] + ".npz"
+    filename_regex = re.compile(r"listmode_data_minimal_(\d+)_(\d+)\.npz")
+    print(f"\n[{i+1}/{len(lmf_output_dir)}] Processing {lmf_output_dir}")
+    start_time = time.time()
+    
+    lmf_path = minimal_file + ".npz"
+    
+    # base_name = os.path.basename(lmf_output_dir)
+    match = filename_regex.match(lmf_path)
+    if match:
+        index_str, num_str = match.groups()
+        out_name = f"reconstructed_index{index_str}_num{num_str}.npz"
+    else:
+        # fallback if not matching
+        out_name = "reconstructed_" + os.path.splitext(lmf_path)[0] + ".npz"
 
         # Reconstruct
         result_3d = reconstruct_volume_for_lmf(

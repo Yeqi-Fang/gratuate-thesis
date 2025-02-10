@@ -109,20 +109,19 @@ def main():
         minimal_file = os.path.join(lmf_output_dir, f"listmode_data_minimal_{i}_{num_events}")
         save_events_binary(minimal_file, events, save_full_data=False)
 
-    filename_regex = re.compile(r"listmode_data_minimal_(\d+)_(\d+)\.npz")
-    print(f"\n[{i+1}/{len(lmf_output_dir)}] Processing {lmf_output_dir}")
-    start_time = time.time()
-    
-    lmf_path = minimal_file + ".npz"
-    
-    # base_name = os.path.basename(lmf_output_dir)
-    match = filename_regex.match(lmf_path)
-    if match:
-        index_str, num_str = match.groups()
-        out_name = f"reconstructed_index{index_str}_num{num_str}.npz"
-    else:
-        # fallback if not matching
-        out_name = "reconstructed_" + os.path.splitext(lmf_path)[0] + ".npz"
+        lmf_path = minimal_file + ".npz"
+        filename_regex = re.compile(r"listmode_data_minimal_(\d+)_(\d+)\.npz")
+        print(f"\nProcessing {lmf_path}")
+        start_time = time.time()
+        
+        
+        # base_name = os.path.basename(lmf_output_dir)
+        match = filename_regex.match(lmf_path)
+        if match:
+            index_str, num_str = match.groups()
+            out_name = f"reconstructed_index{index_str}_num{num_str}.npz"
+        else:
+            raise ValueError(f"Filename {lmf_path} does not match the expected format.")
 
         # Reconstruct
         result_3d = reconstruct_volume_for_lmf(

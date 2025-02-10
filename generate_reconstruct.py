@@ -32,9 +32,9 @@ from outlier_detection import (
 info = {
     'min_rsector_difference': np.float32(0.0),
     'crystal_length': np.float32(0.0),
-    'radius': np.float32(290.56),
+    'radius': np.float32(253.71),
     'crystalTransNr': 13,
-    'crystalTransSpacing': np.float32(4.03125),
+    'crystalTransSpacing': np.float32(4.01648),
     'crystalAxialNr': 7,
     'crystalAxialSpacing': np.float32(5.36556),
     'submoduleAxialNr': 1,
@@ -45,13 +45,13 @@ info = {
     'moduleTransSpacing': np.float32(0.0),
     'moduleAxialNr': 6,
     'moduleAxialSpacing': np.float32(89.82),
-    'rsectorTransNr': 32,
+    'rsectorTransNr': 28,
     'rsectorAxialNr': 1,
-    'TOF': 1,
+    'TOF': 0,
     'num_tof_bins': np.float32(29.0),
     'tof_range': np.float32(735.7705),
     'tof_fwhm': np.float32(57.71),
-    'NrCrystalsPerRing': 416,
+    'NrCrystalsPerRing': 364, #13 * 7 * 4
     'NrRings': 42,
     'firstCrystalAxis': 0
 }
@@ -66,6 +66,7 @@ psf_fwhm_mm = 4.5
 outlier = False
 num_events = int(2e9)
 save_events_pos = False
+
 def main():
     # Create PET scanner geometry from info
     geometry = create_pet_geometry(info)

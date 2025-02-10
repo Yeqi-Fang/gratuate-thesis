@@ -6,6 +6,7 @@ from pet_simulator.geometry import create_pet_geometry
 from pet_simulator.simulator import PETSimulator
 from pet_simulator.utils import save_events, save_events_binary
 
+
 # PET scanner configuration information
 info = {
     'min_rsector_difference': np.float32(0.0),

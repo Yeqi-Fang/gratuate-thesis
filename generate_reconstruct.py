@@ -81,7 +81,7 @@ def main():
     lut_file = 'detector_lut.txt'
     # Create an output directory for listmode data if it doesn't exist.
     lmf_output_dir = "tmp"
-    output_dir = f'reconstruction_npy_full_train/{num_events:d}'
+    output_dir = f'reconstruction_npy_full_test/{num_events:d}'
     os.makedirs(lmf_output_dir, exist_ok=True)
 
     # Process each image file from 3d_image_0.npy to 3d_image_169.npy
@@ -110,7 +110,7 @@ def main():
         save_events_binary(minimal_file, events, save_full_data=False)
 
         lmf_path = minimal_file + ".npz"
-        filename_regex = re.compile(r"listmode_data_minimal_(\d+)_(\d+)\.npz")
+        filename_regex = re.compile(r".*listmode_data_minimal_(\d+)_(\d+)\.npz")
         print(f"\nProcessing {lmf_path}")
         start_time = time.time()
         
@@ -119,7 +119,7 @@ def main():
         match = filename_regex.match(lmf_path)
         if match:
             index_str, num_str = match.groups()
-            out_name = f"reconstructed_index{index_str}_num{num_str}.npz"
+            out_name = f"reconstructed_index{index_str}_num{num_str}"
         else:
             raise ValueError(f"Filename {lmf_path} does not match the expected format.")
 
@@ -137,6 +137,7 @@ def main():
         )
 
         # Save
+        os.makedirs(output_dir, exist_ok=True)
         out_path = os.path.join(output_dir, out_name)
         np.save(out_path, result_3d)
         

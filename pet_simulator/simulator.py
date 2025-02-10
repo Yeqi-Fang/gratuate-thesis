@@ -42,16 +42,17 @@ class PETSimulator:
     def _calculate_detector_positions(self):
         """Calculate detector positions based on geometry parameters."""
         angles = np.linspace(0, 2 * np.pi, self.geometry.crystals_per_ring, endpoint=False)
+        effective_angles = angles + np.pi / 2
         self.detector_positions = np.zeros(
             (self.geometry.num_rings * self.geometry.crystals_per_ring, 3),
             dtype=np.float32
         )
         for ring in range(self.geometry.num_rings):
-            z_pos = (ring - (self.geometry.num_rings - 1) / 2) * self.geometry.crystal_axial_spacing
+            z_pos = - (ring - (self.geometry.num_rings - 1) / 2) * self.geometry.crystal_axial_spacing
             start_idx = ring * self.geometry.crystals_per_ring
             end_idx = (ring + 1) * self.geometry.crystals_per_ring
-            self.detector_positions[start_idx:end_idx, 0] = self.geometry.radius * np.cos(angles)
-            self.detector_positions[start_idx:end_idx, 1] = self.geometry.radius * np.sin(angles)
+            self.detector_positions[start_idx:end_idx, 0] = self.geometry.radius * np.cos(effective_angles)
+            self.detector_positions[start_idx:end_idx, 1] = self.geometry.radius * np.sin(effective_angles)
             self.detector_positions[start_idx:end_idx, 2] = z_pos
 
     def simulate_events(self, num_events: int, use_multiprocessing: bool = True) -> np.ndarray:

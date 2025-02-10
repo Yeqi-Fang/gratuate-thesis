@@ -2,8 +2,8 @@ import os
 import numpy as np
 
 # Define input and output folders.
-input_folder = r"reconstruction_npy_full_train"
-output_folder = r"reconstruction_npy_full_train_scaled"
+input_folder = r"reconstruction_npy_full_train/1000000000_80_128_128"
+output_folder = r"reconstruction_npy_full_train/1000000000_80_128_128/filtered"
 os.makedirs(output_folder, exist_ok=True)
 
 # Loop through all .npy files in the input folder.

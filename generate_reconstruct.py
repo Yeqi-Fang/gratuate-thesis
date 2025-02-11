@@ -6,14 +6,10 @@ import glob
 import numpy as np
 import torch
 import time
+from datetime import datetime
 import matplotlib.pyplot as plt
-
-from pytomography.metadata import ObjectMeta
-from pytomography.metadata.PET import PETLMProjMeta
-from pytomography.projectors.PET import PETLMSystemMatrix
-from pytomography.algorithms import OSEM
-from pytomography.likelihoods import PoissonLogLikelihood
-from pytomography.transforms.shared import GaussianFilter
+import multiprocessing
+from pytomography.io.PET import gate, shared
 
 from pet_simulator.geometry import create_pet_geometry
 from pet_simulator.simulator import PETSimulator
@@ -44,13 +40,10 @@ info = {
     'moduleTransNr': 1,
     'moduleTransSpacing': np.float32(0.0),
     'moduleAxialNr': 6,
-    'moduleAxialSpacing': np.float32(89.82),
+    'moduleAxialSpacing': np.float32(37.55892),
     'rsectorTransNr': 28,
     'rsectorAxialNr': 1,
     'TOF': 0,
-    'num_tof_bins': np.float32(29.0),
-    'tof_range': np.float32(735.7705),
-    'tof_fwhm': np.float32(57.71),
     'NrCrystalsPerRing': 364, #13 * 7 * 4
     'NrRings': 42,
     'firstCrystalAxis': 0
@@ -64,7 +57,7 @@ n_iters = 1
 n_subsets = 34
 psf_fwhm_mm = 4.5
 outlier = False
-num_events = int(2e9)
+num_events = int(1.5e9)
 save_events_pos = False
 
 def main():
@@ -78,15 +71,24 @@ def main():
     simulator_for_lut.save_detector_positions("detector_lut.txt")
 
     # Define the base directory where the 3D image files are stored.
-    base_dir = r"D:\Datasets\dataset\test_npy_crop"
+    base_dir = r"D:\Datasets\dataset\train_npy_crop"
     lut_file = 'detector_lut.txt'
+    
     # Create an output directory for listmode data if it doesn't exist.
     lmf_output_dir = "tmp"
-    output_dir = f'reconstruction_npy_full_test/{num_events:d}'
+    output_dir = f'reconstruction_npy_full_train/{num_events:d}'
     os.makedirs(lmf_output_dir, exist_ok=True)
+    
+    # Create a log directory using the current timestamp
+    log_dir = os.path.join("log", datetime.now().strftime("%Y%m%d_%H%M%S"))
+    os.makedirs(log_dir, exist_ok=False)
+    print(f"Log directory: {log_dir}")
+    
+    output_dir_sinogram = f'reconstruction_npy_full_train/{num_events:d}/sinogram'
+    os.makedirs(output_dir_sinogram, exist_ok=True)
 
     # Process each image file from 3d_image_0.npy to 3d_image_169.npy
-    for i in range(30, 36):
+    for i in range(47, 170):
         image_filename = f"3d_image_{i}.npy"
         image_path = os.path.join(base_dir, image_filename)
         print(f"\nProcessing {image_filename} ...")
@@ -114,7 +116,6 @@ def main():
         filename_regex = re.compile(r".*listmode_data_minimal_(\d+)_(\d+)\.npz")
         print(f"\nProcessing {lmf_path}")
         start_time = time.time()
-        
         
         # base_name = os.path.basename(lmf_output_dir)
         match = filename_regex.match(lmf_path)
@@ -146,6 +147,90 @@ def main():
         end_time = time.time()
 
         print(f"  -> Saved {out_path} (shape={result_3d.shape}) in {end_time - start_time:.1f}s")
+
+        detector_ids = torch.from_numpy(events).to(torch.int32)
+        del events, simulator
+        sinogram_randoms_true = gate.listmode_to_sinogram(detector_ids, info)
+        del detector_ids
+        print("Sinogram shape:", sinogram_randoms_true.shape)
+        
+        # visualize sinogram
+        fig, ax = plt.subplots(1, 1, figsize=(7, 4.5))
+        im0 = ax.imshow(sinogram_randoms_true.numpy()[0, :, :42], cmap='magma')
+        ax.set_title(f'Original Sinogram')
+        ax.axis('off')
+        fig.colorbar(im0, ax=ax, fraction=0.046, pad=0.04)
+        plt.tight_layout()
+        fig_filename = os.path.join(log_dir, f"sinogram_{image_filename}.pdf")
+        plt.savefig(fig_filename, dpi=300)
+        plt.close(fig)
+        print(f"  -> Saved sinogram figure to {fig_filename}")
+                
+        out_path_sinogram = os.path.join(output_dir_sinogram, out_name)
+        np.save(out_path_sinogram, sinogram_randoms_true.numpy().astype(np.float32))
+        del sinogram_randoms_true
+        
+        # ---------------------------
+        # LOGGING: Save comparison figures
+        # ---------------------------
+        # We want to compare a slice of the original image and the reconstructed volume.
+        # Here we choose the middle slice along the z-axis.
+        slice_index = result_3d.shape[2] // 2
+        
+        # Create a figure with two subplots
+        fig, axs = plt.subplots(1, 2, figsize=(15, 4.5))
+        im0 = axs[0].imshow(image[:, :, slice_index], cmap='magma', interpolation='nearest')
+        axs[0].set_title(f'Original Image Slice (z = {slice_index})')
+        axs[0].axis('off')
+        fig.colorbar(im0, ax=axs[0], fraction=0.046, pad=0.04)
+        
+        im1 = axs[1].imshow(result_3d[:, :, slice_index], cmap='magma', interpolation='nearest')
+        axs[1].set_title(f'Reconstructed Slice (z = {slice_index})')
+        axs[1].axis('off')
+        fig.colorbar(im1, ax=axs[1], fraction=0.046, pad=0.04)
+        plt.tight_layout()
+        
+        # Save the figure in the log directory
+        fig_filename = os.path.join(log_dir, f"comparison_{image_filename}.pdf")
+        plt.savefig(fig_filename, dpi=300)
+        plt.close(fig)
+        print(f"  -> Saved comparison figure to {fig_filename}")
+        
+        # Optionally, you can save a second figure (e.g., for a slice along x-axis)
+        slice_index_x = result_3d.shape[0] // 2
+        fig2, axs2 = plt.subplots(1, 2, figsize=(15, 6))
+        im0 = axs2[0].imshow(image[slice_index_x, :, :], cmap='magma', interpolation='nearest')
+        axs2[0].set_title(f'Original Image Slice (x = {slice_index_x})')
+        axs2[0].axis('off')
+        fig.colorbar(im0, ax=axs2[0], fraction=0.046, pad=0.04)
+        
+        im1 = axs2[1].imshow(result_3d[slice_index_x, :, :], cmap='magma', interpolation='nearest')
+        axs2[1].set_title(f'Reconstructed Slice (x = {slice_index_x})')
+        axs2[1].axis('off')
+        fig.colorbar(im1, ax=axs2[1], fraction=0.046, pad=0.04)
+        plt.tight_layout()
+        fig2_filename = os.path.join(log_dir, f"comparison_x_{image_filename}.pdf")
+        plt.savefig(fig2_filename, dpi=300)
+        plt.close(fig2)
+        print(f"  -> Saved second comparison figure to {fig2_filename}")
+        
+        # Optionally, you can save a third figure (e.g., for a slice along y-axis)
+        slice_index_x = result_3d.shape[1] // 2
+        fig2, axs3 = plt.subplots(1, 2, figsize=(15, 4.5))
+        im0 = axs3[0].imshow(image[:, slice_index_x, :], cmap='magma', interpolation='nearest')
+        axs3[0].set_title(f'Original Image Slice (x = {slice_index_x})')
+        axs3[0].axis('off')
+        fig.colorbar(im0, ax=axs3[0], fraction=0.046, pad=0.04)
+        
+        im1 = axs3[1].imshow(result_3d[:, slice_index_x, :], cmap='magma', interpolation='nearest')
+        axs3[1].set_title(f'Reconstructed Slice (x = {slice_index_x})')
+        axs3[1].axis('off')
+        fig.colorbar(im1, ax=axs3[1], fraction=0.046, pad=0.04)
+        plt.tight_layout()
+        fig3_filename = os.path.join(log_dir, f"comparison_y_{image_filename}.pdf")
+        plt.savefig(fig3_filename, dpi=300)
+        plt.close(fig2)
+        print(f"  -> Saved second comparison figure to {fig3_filename}")
 
     print("\nAll reconstructions complete.")
     

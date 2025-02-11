@@ -46,20 +46,21 @@ def find_detector_intersection(pos: np.ndarray, direction: np.ndarray,
     # Compute the ring index from the z coordinate.
     # Detector z positions are computed as:
     #    z = (ring - (num_rings - 1)/2) * crystal_axial_spacing
-    ring = int(np.round(intersection[2] / crystal_axial_spacing + (num_rings - 1) / 2))
+    ring = int(np.round(- intersection[2] / crystal_axial_spacing + (num_rings - 1) / 2))
     
     # Determine the number of crystals per ring from the detector_positions array.
     crystals_per_ring = detector_positions.shape[0] // int(num_rings)
     
     # Compute the azimuthal angle of the intersection point.
     phi = np.arctan2(intersection[1], intersection[0])
-    if phi < 0:
-        phi += 2 * np.pi
+    phi_adjusted = phi - (np.pi / 2)
+    if phi_adjusted < 0:
+        phi_adjusted += 2 * np.pi
 
     # The detectors in each ring are uniformly distributed:
     #    angle_step = 2*pi / crystals_per_ring
     # Compute the index within the ring:
-    det_in_ring = int(np.round(phi / (2 * np.pi / crystals_per_ring))) % crystals_per_ring
+    det_in_ring = int(np.round(phi_adjusted / (2 * np.pi / crystals_per_ring))) % crystals_per_ring
 
     nearest_detector2 = ring * crystals_per_ring + det_in_ring
     # Vectorized computation of squared distances from intersection to all detectors.

@@ -75,7 +75,7 @@ class PETSimulator:
         }
 
         if use_multiprocessing:
-            num_processes = min(mp.cpu_count(), 8)  # or some custom logic
+            num_processes = min(mp.cpu_count(), 12)  # or some custom logic
             batch_size = num_events // num_processes
 
             with mp.Pool(num_processes) as pool:
@@ -84,7 +84,12 @@ class PETSimulator:
                     batch_size=batch_size,
                     shared_data=shared_data
                 )
+                # try:
                 results = pool.map(process_batch_partial, range(num_processes))
+                # except mp.pool.MaybeEncodingError as e:
+                #     # try again with the same config
+                #     print(f"Error: {e}")
+                #     results = pool.map(process_batch_partial, range(num_processes))
             total_events = np.vstack(results)
         else:
             # Single-process approach: just call simulate_batch directly in a loop.

@@ -88,7 +88,7 @@ def main():
     os.makedirs(output_dir_sinogram, exist_ok=True)
 
     # Process each image file from 3d_image_0.npy to 3d_image_169.npy
-    for i in range(47, 170):
+    for i in range(97, 170):
         image_filename = f"3d_image_{i}.npy"
         image_path = os.path.join(base_dir, image_filename)
         print(f"\nProcessing {image_filename} ...")

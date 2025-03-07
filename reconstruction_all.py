@@ -42,68 +42,74 @@ from outlier_detection import (
     remove_outliers_iteratively
 )
 
-def reconstruct_volume_for_lmf(lmf_file: str,
-                               lut_file: str,
-                               voxel_size: float = 2.78,
-                               volume_size: int = 128,
-                               extended_size: int = 128,
-                               n_iters: int = 2,
-                               n_subsets: int = 34,
-                               psf_fwhm_mm: float = 4.5,
-                               detector_outlier: str = "True") -> np.ndarray:
+def reconstruct_volume_for_lmf(lmf_file=None,
+                               detector_ids_np=None,
+                               lut_file=None,
+                               scanner_lut=None,
+                               voxel_size=2.78,
+                               volume_size=128,
+                               extended_size=128,
+                               n_iters=2,
+                               n_subsets=34,
+                               psf_fwhm_mm=4.5,
+                               detector_outlier="True") -> np.ndarray:
     """
-    Reconstruct a volume from a single minimal listmode (.lmf) file using OSEM,
-    then apply outlier detection and iterative removal.
-
+    Reconstruct a volume from either a listmode file or directly from detector IDs.
+    
     Args:
-        lmf_file (str): Path to the minimal .lmf file (det1_id, det2_id).
-        lut_file (str): Path to the detector LUT (det_id, x, y, z).
+        lmf_file (str, optional): Path to the minimal .lmf file (det1_id, det2_id).
+        detector_ids_np (np.ndarray, optional): Directly provided detector IDs array.
+        lut_file (str, optional): Path to the detector LUT (det_id, x, y, z).
+        scanner_lut (torch.Tensor, optional): Directly provided scanner LUT.
         voxel_size (float): The voxel size in mm.
         volume_size (int): The final cropped volume dimension (cube).
-        extended_size (int): The internal recon shape if you want to reconstruct
-                             a larger or padded volume.
+        extended_size (int): The internal recon shape.
         n_iters (int): Number of OSEM iterations (each w/ n_subsets).
         n_subsets (int): Number of subsets in OSEM.
         psf_fwhm_mm (float): If >0, apply a Gaussian PSF with given FWHM in mm.
+        detector_outlier (str): Whether to apply outlier detection.
 
     Returns:
-        patched_image (np.ndarray): 3D array [volume_size, volume_size, volume_size]
-                                    after outlier removal and normalization.
+        patched_image (np.ndarray): 3D volume after outlier removal and normalization.
     """
-
-    # -------------------------------------------------------------------------
-    # 1. Read the minimal listmode events from the .lmf file.
-    # -------------------------------------------------------------------------
-    # dtype_minimal = np.dtype([('det1_id', np.uint16), ('det2_id', np.uint16)])
-    # events_np = np.fromfile(lmf_file, dtype=dtype_minimal)
-    with np.load(lmf_file) as f:
-        events_np = f['listmode']
-    # Convert to a 2D array of shape (N, 2)
-    detector_ids_np = np.column_stack((events_np['det1_id'], events_np['det2_id']))
+    # Get detector IDs either from provided array or from file
+    if detector_ids_np is not None:
+        # Use directly provided detector IDs
+        pass
+    elif lmf_file is not None:
+        # Load from file
+        with np.load(lmf_file) as f:
+            events_np = f['listmode']
+        detector_ids_np = np.column_stack((events_np['det1_id'], events_np['det2_id']))
+    else:
+        raise ValueError("Either lmf_file or detector_ids_np must be provided")
+    
     # Convert to torch.Tensor
     detector_ids = torch.from_numpy(detector_ids_np).long()
 
-    # -------------------------------------------------------------------------
-    # 2. Read the scanner LUT from the text file (skip 1 header line).
-    # -------------------------------------------------------------------------
-    lut_data = np.loadtxt(lut_file, skiprows=1)
-    # Columns are [detector_id, x, y, z], but we only need x,y,z.
-    scanner_lut_np = lut_data[:, 1:4]
-    scanner_lut = torch.from_numpy(scanner_lut_np).float()
+    # Get scanner LUT either from provided tensor or from file
+    if scanner_lut is None and lut_file is not None:
+        # Read the scanner LUT from the text file
+        lut_data = np.loadtxt(lut_file, skiprows=1)
+        scanner_lut_np = lut_data[:, 1:4]
+        scanner_lut = torch.from_numpy(scanner_lut_np).float()
+    elif scanner_lut is None:
+        raise ValueError("Either lut_file or scanner_lut must be provided")
 
+    # Rest of the function remains the same...
     # -------------------------------------------------------------------------
     # 3. Create PET listmode projection metadata.
     # -------------------------------------------------------------------------
     proj_meta = PETLMProjMeta(
         detector_ids=detector_ids,
-        info=None,                   # Not provided.
-        scanner_LUT=scanner_lut,     # Provide the LUT read from file.
+        info=None,
+        scanner_LUT=scanner_lut,
         tof_meta=None,
         weights=None,
         detector_ids_sensitivity=None,
         weights_sensitivity=None
     )
-
+    
     # -------------------------------------------------------------------------
     # 4. Define the reconstruction volume (ObjectMeta).
     # -------------------------------------------------------------------------

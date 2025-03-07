@@ -24,6 +24,21 @@ from outlier_detection import (
     remove_outliers_iteratively
 )
 
+import threading
+
+def save_events_background(file_path, events, save_full_data=False):
+    """Save events in a background thread to avoid blocking the main process."""
+    thread = threading.Thread(
+        target=save_events_binary,
+        args=(file_path, events, save_full_data)
+    )
+    thread.daemon = False  # Ensure thread doesn't exit when main program exits
+    thread.start()
+    return thread
+
+
+
+
 # PET scanner configuration information
 info = {
     'min_rsector_difference': np.float32(0.0),
@@ -57,7 +72,7 @@ n_iters = 1
 n_subsets = 34
 psf_fwhm_mm = 4.5
 outlier = False
-num_events = int(1.5e9)
+num_events = int(2e9)
 save_events_pos = False
 
 def main():
@@ -71,12 +86,18 @@ def main():
     simulator_for_lut.save_detector_positions("detector_lut.txt")
 
     # Define the base directory where the 3D image files are stored.
-    base_dir = r"D:\Datasets\dataset\train_npy_crop"
+    # base_dir = r"D:\Datasets\dataset\train_npy_crop"
+    base_dir = "data/dataset/train_npy_crop"
     lut_file = 'detector_lut.txt'
     
+    # Create and cache the scanner LUT for reuse
+    lut_data = np.loadtxt(lut_file, skiprows=1)
+    scanner_lut_np = lut_data[:, 1:4]
+    scanner_lut = torch.from_numpy(scanner_lut_np).float()
+    
     # Create an output directory for listmode data if it doesn't exist.
-    lmf_output_dir = "tmp"
-    output_dir = f'reconstruction_npy_full_train/{num_events:d}'
+    lmf_output_dir = f'/mnt/d/fyq/sinogram/reconstruction_npy_full_train/{num_events:d}/listmode'
+    output_dir = f'/mnt/d/fyq/sinogram/reconstruction_npy_full_train/{num_events:d}'
     os.makedirs(lmf_output_dir, exist_ok=True)
     
     # Create a log directory using the current timestamp
@@ -84,11 +105,22 @@ def main():
     os.makedirs(log_dir, exist_ok=False)
     print(f"Log directory: {log_dir}")
     
-    output_dir_sinogram = f'reconstruction_npy_full_train/{num_events:d}/sinogram'
+    output_dir_sinogram = f'/mnt/d/fyq/sinogram/reconstruction_npy_full_train/{num_events:d}/sinogram'
     os.makedirs(output_dir_sinogram, exist_ok=True)
 
+    
+    # Create a thread pool for controlling concurrency
+    from concurrent.futures import ThreadPoolExecutor
+    # Use a reasonable number of threads based on your system (e.g., half the cores)
+    max_parallel_saves = min(16, os.cpu_count())
+    print(f"Using {max_parallel_saves} parallel file saving threads")
+    
+    # Keep track of all save threads to ensure they complete
+    save_threads = []
+
     # Process each image file from 3d_image_0.npy to 3d_image_169.npy
-    for i in range(97, 170):
+    for i in range(45, 170):
+        start_time_total = time.time()
         image_filename = f"3d_image_{i}.npy"
         image_path = os.path.join(base_dir, image_filename)
         print(f"\nProcessing {image_filename} ...")
@@ -106,29 +138,24 @@ def main():
         events = simulator.simulate_events(num_events=num_events, use_multiprocessing=True)
         end_time = time.time()
         print(f"Generated {len(events)} valid events in {end_time - start_time:.2f} seconds.")
-        print("Events shape:", events.shape)
         
-        # Save events in binary .lmf format (minimal and full)
+        # Start saving events in background without blocking
         minimal_file = os.path.join(lmf_output_dir, f"listmode_data_minimal_{i}_{num_events}")
-        save_events_binary(minimal_file, events, save_full_data=False)
-
-        lmf_path = minimal_file + ".npz"
-        filename_regex = re.compile(r".*listmode_data_minimal_(\d+)_(\d+)\.npz")
-        print(f"\nProcessing {lmf_path}")
-        start_time = time.time()
+        save_thread = save_events_background(minimal_file, events, save_full_data=False)
+        save_threads.append(save_thread)
         
-        # base_name = os.path.basename(lmf_output_dir)
-        match = filename_regex.match(lmf_path)
-        if match:
-            index_str, num_str = match.groups()
-            out_name = f"reconstructed_index{index_str}_num{num_str}"
-        else:
-            raise ValueError(f"Filename {lmf_path} does not match the expected format.")
-
-        # Reconstruct
+        # Extract the index and num for the output filename
+        out_name = f"reconstructed_index{i}_num{num_events}"
+        
+        # Convert raw events to detector IDs for reconstruction
+        detector_ids_np = events  # Assumes events are already in correct format
+        
+        # Reconstruct directly from events, bypassing file load
+        start_time = time.time()
+        print("Starting reconstruction...")
         result_3d = reconstruct_volume_for_lmf(
-            lmf_file=lmf_path,
-            lut_file=lut_file,
+            detector_ids_np=detector_ids_np,
+            scanner_lut=scanner_lut,  # Pass directly, avoid reloading
             voxel_size=voxel_size,
             volume_size=volume_size,
             extended_size=extended_size,
@@ -137,21 +164,18 @@ def main():
             psf_fwhm_mm=psf_fwhm_mm,
             detector_outlier=outlier
         )
-
-        # Save
+        
+        # Save reconstruction result
         os.makedirs(output_dir, exist_ok=True)
         out_path = os.path.join(output_dir, out_name)
         np.save(out_path, result_3d)
-        
-        os.remove(lmf_path)
         end_time = time.time()
-
         print(f"  -> Saved {out_path} (shape={result_3d.shape}) in {end_time - start_time:.1f}s")
-
+        
+        # Process sinogram directly from events (no need to reload)
         detector_ids = torch.from_numpy(events).to(torch.int32)
-        del events, simulator
         sinogram_randoms_true = gate.listmode_to_sinogram(detector_ids, info)
-        del detector_ids
+        # del detector_ids
         print("Sinogram shape:", sinogram_randoms_true.shape)
         
         # visualize sinogram
@@ -168,7 +192,7 @@ def main():
                 
         out_path_sinogram = os.path.join(output_dir_sinogram, out_name)
         np.save(out_path_sinogram, sinogram_randoms_true.numpy().astype(np.float32))
-        del sinogram_randoms_true
+        # del sinogram_randoms_true
         
         # ---------------------------
         # LOGGING: Save comparison figures
@@ -231,6 +255,21 @@ def main():
         plt.savefig(fig3_filename, dpi=300)
         plt.close(fig2)
         print(f"  -> Saved second comparison figure to {fig3_filename}")
+
+        end_time_total = time.time()
+        print(f"Total time: {end_time_total - start_time_total}s")
+        
+        
+        # Limit the number of concurrent save threads
+        # Wait for some threads to complete if we've reached the limit
+        while len([t for t in save_threads if t.is_alive()]) >= max_parallel_saves:
+            time.sleep(0.5)  # Check every half second
+
+
+    # Wait for all save threads to complete before exiting
+    print("Waiting for all file save operations to complete...")
+    for thread in save_threads:
+        thread.join()
 
     print("\nAll reconstructions complete.")
     

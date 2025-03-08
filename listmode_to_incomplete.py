@@ -6,8 +6,8 @@ This script:
   1) Reads complete listmode data (.npz files)
   2) Filters out events involving detectors in specified angular ranges (creating "incomplete ring" data)
   3) Generates sinograms from the filtered data
-  4) Saves both the incomplete listmode data and sinograms
-  5) Creates enhanced visualizations of the sinograms
+  4) Creates comparison visualizations between complete and incomplete sinograms
+  5) Saves both the incomplete listmode data and sinograms
 
 Usage:
   python listmode_to_incomplete.py --input_dir /path/to/complete/listmode --output_dir /path/to/output --num_events 2000000000
@@ -20,6 +20,7 @@ import numpy as np
 import torch
 import time
 import argparse
+import threading
 import matplotlib
 matplotlib.use('Agg')  # Non-interactive backend to avoid GUI errors
 import matplotlib.pyplot as plt
@@ -31,7 +32,7 @@ from pytomography.io.PET import gate
 from enhanced_visualization import (
     visualize_sinogram_multislice,
     visualize_sinogram_multi_perspective,
-    visualize_multi_axial_views
+    compare_sinograms
 )
 
 # PET scanner configuration (from main.py)
@@ -183,13 +184,103 @@ def filter_listmode_data(events, missing_ids):
     
     return filtered_events
 
-def process_listmode_file(input_file, output_dir, log_dir, missing_ids, num_events, vis_level=2):
+def load_complete_sinogram(sinogram_dir, index, num_events):
+    """
+    Load the complete sinogram data from the given directory.
+    
+    Args:
+        sinogram_dir: Base directory containing sinogram data
+        index: Index number of the data
+        num_events: Number of events
+    
+    Returns:
+        Complete sinogram data if found, None otherwise
+    """
+    # 构造完整环正弦图文件路径
+    complete_path = os.path.join(
+        sinogram_dir, 
+        f"reconstructed_index{index}_num{num_events}.npy"
+    )
+    
+    # 尝试加载完整环正弦图
+    if os.path.exists(complete_path):
+        try:
+            return np.load(complete_path)
+        except Exception as e:
+            print(f"Error loading complete sinogram from {complete_path}: {e}")
+    
+    return None
+
+def process_and_compare_sinograms_background(complete_sinogram, incomplete_sinogram, output_dir, log_dir, image_index):
+    """
+    Process and compare complete and incomplete sinograms in a background thread.
+    
+    Args:
+        complete_sinogram: Complete ring sinogram data
+        incomplete_sinogram: Incomplete ring sinogram data
+        output_dir: Output directory for saving results
+        log_dir: Log directory for visualizations
+        image_index: Index of the image being processed
+    """
+    def _process_and_compare():
+        # 确保在线程中使用非交互式后端
+        matplotlib.use('Agg')
+        
+        try:
+            # 创建可视化目录
+            vis_dir = os.path.join(log_dir, "visualizations")
+            os.makedirs(vis_dir, exist_ok=True)
+            
+            # 生成比较可视化
+            compare_path = os.path.join(
+                vis_dir, 
+                f"sinogram_comparison_index{image_index}.png"
+            )
+            
+            # 使用增强的可视化函数生成比较图
+            compare_sinograms(
+                complete_sinogram=complete_sinogram,
+                incomplete_sinogram=incomplete_sinogram,
+                output_path=compare_path,
+                title=f"Complete vs Incomplete Sinogram Comparison (Index {image_index})",
+                num_slices=3
+            )
+            
+            print(f"  -> Saved sinogram comparison to {compare_path}")
+            
+            # 可选：为不完整环正弦图单独创建多切片可视化
+            multislice_path = os.path.join(
+                vis_dir, 
+                f"incomplete_sinogram_multislice_index{image_index}.png"
+            )
+            
+            visualize_sinogram_multislice(
+                sinogram=incomplete_sinogram,
+                output_path=multislice_path,
+                title=f"Incomplete Ring Sinogram Multislice (Index {image_index})",
+                num_slices=8
+            )
+            
+            print(f"  -> Saved incomplete sinogram multislice to {multislice_path}")
+            
+        except Exception as e:
+            print(f"Warning: Failed to generate sinogram comparison: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    thread = threading.Thread(target=_process_and_compare)
+    thread.daemon = False  # 确保线程不会随主程序退出而终止
+    thread.start()
+    return thread
+
+def process_listmode_file(input_file, output_dir, complete_sinogram_dir, log_dir, missing_ids, num_events, vis_level=2):
     """
     Process a single listmode file: filter it and generate a sinogram.
     
     Args:
         input_file: Path to the input listmode .npz file
         output_dir: Base output directory
+        complete_sinogram_dir: Directory containing complete sinograms for comparison
         log_dir: Directory for visualizations and logs
         missing_ids: Set of detector IDs considered missing
         num_events: Event count for output path construction
@@ -197,12 +288,13 @@ def process_listmode_file(input_file, output_dir, log_dir, missing_ids, num_even
     """
     # Extract index from filename using regex
     filename = os.path.basename(input_file)
-    match = re.search(r'reconstructed_index(\d+)_num', filename)
+    match = re.search(r'reconstructed_index(\d+)_num|listmode_data_minimal_(\d+)_', filename)
     if not match:
         print(f"Error: Could not parse index from filename: {filename}")
         return
     
-    index = match.group(1)
+    # 提取索引，考虑不同的文件命名模式
+    index = match.group(1) if match.group(1) else match.group(2)
     print(f"\nProcessing listmode data for index {index}...")
     
     start_time = time.time()
@@ -235,56 +327,57 @@ def process_listmode_file(input_file, output_dir, log_dir, missing_ids, num_even
     # Set up output directories
     incomplete_lm_dir = os.path.join(output_dir, 'listmode_incomplete')
     incomplete_sinogram_dir = os.path.join(output_dir, 'sinogram_incomplete')
-    vis_dir = os.path.join(log_dir, 'visualizations')
     
     os.makedirs(incomplete_lm_dir, exist_ok=True)
     os.makedirs(incomplete_sinogram_dir, exist_ok=True)
-    os.makedirs(vis_dir, exist_ok=True)
     
-    # Save filtered listmode data
+    # Save filtered listmode data in background
     out_lm_path = os.path.join(incomplete_lm_dir, f"incomplete_index{index}_num{num_events}.npz")
-    np.savez_compressed(out_lm_path, listmode=filtered_events)
-    print(f"Saved incomplete listmode data to {out_lm_path}")
+    save_thread = threading.Thread(
+        target=lambda: np.savez_compressed(out_lm_path, listmode=filtered_events)
+    )
+    save_thread.daemon = False
+    save_thread.start()
     
-    # Convert to tensor for sinogram generation
+    # Convert filtered events to detector IDs for sinogram generation
     detector_ids = torch.from_numpy(filtered_events).to(torch.int32)
     
     # Generate sinogram
     print("Generating sinogram from incomplete data...")
-    sinogram = gate.listmode_to_sinogram(detector_ids, info)
+    incomplete_sinogram = gate.listmode_to_sinogram(detector_ids, info)
     
-    # Save sinogram
+    # Save incomplete sinogram
     out_sinogram_path = os.path.join(incomplete_sinogram_dir, f"incomplete_index{index}_num{num_events}")
-    np.save(out_sinogram_path, sinogram.numpy().astype(np.float32))
+    np.save(out_sinogram_path, incomplete_sinogram.numpy().astype(np.float32))
     print(f"Saved incomplete sinogram to {out_sinogram_path}")
     
-    # Create enhanced visualizations
-    if vis_level >= 1:
-        # Basic visualization
-        sinogram_np = sinogram.numpy()
-        
-        # Create multi-slice visualization
-        vis_multislice_path = os.path.join(vis_dir, f"sinogram_slices_index{index}.png")
-        visualize_sinogram_multislice(
-            sinogram_np,
-            vis_multislice_path,
-            title=f"Incomplete Ring Sinogram Slices (Index {index})",
-            num_slices=8  # Show more slices
-        )
-        print(f"Saved multi-slice visualization to {vis_multislice_path}")
+    # 尝试加载对应的完整环正弦图进行比较
+    complete_sinogram = load_complete_sinogram(complete_sinogram_dir, index, num_events)
     
-    if vis_level >= 2:
-        # Detailed multi-perspective visualization
-        vis_multiperspective_path = os.path.join(vis_dir, f"sinogram_perspectives_index{index}.png")
-        visualize_sinogram_multi_perspective(
-            sinogram_np,
-            vis_multiperspective_path,
-            title=f"Multi-Perspective Incomplete Ring Sinogram (Index {index})"
+    # 如果找到完整环正弦图，在后台线程中进行比较可视化
+    if complete_sinogram is not None and vis_level >= 1:
+        print("Found matching complete sinogram, generating comparison...")
+        comparison_thread = process_and_compare_sinograms_background(
+            complete_sinogram=complete_sinogram,
+            incomplete_sinogram=incomplete_sinogram.numpy(),
+            output_dir=output_dir,
+            log_dir=log_dir,
+            image_index=index
         )
-        print(f"Saved multi-perspective visualization to {vis_multiperspective_path}")
+    else:
+        print("No matching complete sinogram found for comparison.")
+        # 即使没有完整环数据，也为不完整环数据单独创建可视化
+        if vis_level >= 1:
+            visualize_sinogram_multislice(
+                sinogram=incomplete_sinogram.numpy(),
+                output_path=os.path.join(log_dir, f"incomplete_sinogram_index{index}.png"),
+                title=f"Incomplete Ring Sinogram (Index {index})",
+                num_slices=6
+            )
     
-    total_time = time.time() - start_time
-    print(f"Completed processing index {index} in {total_time:.2f} seconds")
+    # 等待后台保存线程完成
+    save_thread.join()
+    print(f"Completed processing index {index} in {time.time() - start_time:.2f} seconds")
 
 def main():
     parser = argparse.ArgumentParser(description='Convert complete listmode data to incomplete ring data')
@@ -292,13 +385,29 @@ def main():
                         help='Directory containing complete listmode .npz files')
     parser.add_argument('--output_dir', type=str, required=True,
                         help='Base output directory')
+    parser.add_argument('--sinogram_dir', type=str, 
+                        help='Directory containing complete sinograms for comparison')
     parser.add_argument('--num_events', type=int, required=True,
                         help='Number of events (used for path construction)')
     parser.add_argument('--visualize', action='store_true',
                         help='Generate detector coverage visualization')
     parser.add_argument('--vis_level', type=int, default=2, choices=[0, 1, 2],
                         help='Visualization detail level (0=minimal, 1=basic, 2=detailed)')
+    parser.add_argument('--missing_start1', type=float, default=30,
+                        help='Start angle of first missing sector (degrees)')
+    parser.add_argument('--missing_end1', type=float, default=90,
+                        help='End angle of first missing sector (degrees)')
+    parser.add_argument('--missing_start2', type=float, default=210,
+                        help='Start angle of second missing sector (degrees)')
+    parser.add_argument('--missing_end2', type=float, default=270,
+                        help='End angle of second missing sector (degrees)')
     args = parser.parse_args()
+    
+    # 根据命令行参数设置缺失扇区
+    missing_sectors = [
+        (args.missing_start1, args.missing_end1),
+        (args.missing_start2, args.missing_end2)
+    ]
     
     # Ensure base output directory exists
     os.makedirs(args.output_dir, exist_ok=True)
@@ -308,11 +417,22 @@ def main():
     os.makedirs(log_dir, exist_ok=True)
     print(f"Log directory: {log_dir}")
     
+    # If sinogram_dir not provided, use default location
+    sinogram_dir = args.sinogram_dir
+    if not sinogram_dir:
+        # 尝试构造默认位置：与输入目录平级的sinogram目录
+        parent_dir = os.path.dirname(args.input_dir)
+        sinogram_dir = os.path.join(parent_dir, 'sinogram')
+        if not os.path.exists(sinogram_dir):
+            print(f"Complete sinogram directory not found at {sinogram_dir}")
+            print("Visualizations will not include comparisons")
+            sinogram_dir = None
+    
     # Build missing detector IDs set
     missing_ids = build_missing_detector_ids(
         crystals_per_ring=info['NrCrystalsPerRing'],
         num_rings=info['NrRings'],
-        missing_sectors=MISSING_SECTORS
+        missing_sectors=missing_sectors
     )
     
     # Generate detector coverage visualization
@@ -321,7 +441,7 @@ def main():
             crystals_per_ring=info['NrCrystalsPerRing'],
             num_rings=info['NrRings'],
             missing_ids=missing_ids,
-            missing_sectors=MISSING_SECTORS,
+            missing_sectors=missing_sectors,
             output_dir=log_dir
         )
     
@@ -339,17 +459,27 @@ def main():
         print("No input files found. Check the --input_dir path.")
         return
     
+    # 跟踪所有后台线程
+    all_threads = []
+    
     # Process each file
     for i, lm_file in enumerate(listmode_files):
         print(f"\n[{i+1}/{len(listmode_files)}] Processing {lm_file}")
+        
+        # 处理单个文件
         process_listmode_file(
             input_file=lm_file,
             output_dir=args.output_dir,
+            complete_sinogram_dir=sinogram_dir,
             log_dir=log_dir,
             missing_ids=missing_ids,
             num_events=args.num_events,
             vis_level=args.vis_level
         )
+    
+    # 等待所有后台线程完成
+    for thread in all_threads:
+        thread.join()
     
     print("\nAll files processed. Incomplete ring data generation complete.")
 

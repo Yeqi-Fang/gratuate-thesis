@@ -7,6 +7,7 @@ This script:
   2) Filters out events involving detectors in specified angular ranges (creating "incomplete ring" data)
   3) Generates sinograms from the filtered data
   4) Saves both the incomplete listmode data and sinograms
+  5) Creates enhanced visualizations of the sinograms
 
 Usage:
   python listmode_to_incomplete.py --input_dir /path/to/complete/listmode --output_dir /path/to/output --num_events 2000000000
@@ -25,6 +26,13 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 
 from pytomography.io.PET import gate
+
+# Import our enhanced visualization functions
+from enhanced_visualization import (
+    visualize_sinogram_multislice,
+    visualize_sinogram_multi_perspective,
+    visualize_multi_axial_views
+)
 
 # PET scanner configuration (from main.py)
 info = {
@@ -175,7 +183,7 @@ def filter_listmode_data(events, missing_ids):
     
     return filtered_events
 
-def process_listmode_file(input_file, output_dir, log_dir, missing_ids, num_events):
+def process_listmode_file(input_file, output_dir, log_dir, missing_ids, num_events, vis_level=2):
     """
     Process a single listmode file: filter it and generate a sinogram.
     
@@ -185,6 +193,7 @@ def process_listmode_file(input_file, output_dir, log_dir, missing_ids, num_even
         log_dir: Directory for visualizations and logs
         missing_ids: Set of detector IDs considered missing
         num_events: Event count for output path construction
+        vis_level: Visualization detail level (0=minimal, 1=basic, 2=detailed)
     """
     # Extract index from filename using regex
     filename = os.path.basename(input_file)
@@ -226,9 +235,11 @@ def process_listmode_file(input_file, output_dir, log_dir, missing_ids, num_even
     # Set up output directories
     incomplete_lm_dir = os.path.join(output_dir, 'listmode_incomplete')
     incomplete_sinogram_dir = os.path.join(output_dir, 'sinogram_incomplete')
+    vis_dir = os.path.join(log_dir, 'visualizations')
     
     os.makedirs(incomplete_lm_dir, exist_ok=True)
     os.makedirs(incomplete_sinogram_dir, exist_ok=True)
+    os.makedirs(vis_dir, exist_ok=True)
     
     # Save filtered listmode data
     out_lm_path = os.path.join(incomplete_lm_dir, f"incomplete_index{index}_num{num_events}.npz")
@@ -247,21 +258,30 @@ def process_listmode_file(input_file, output_dir, log_dir, missing_ids, num_even
     np.save(out_sinogram_path, sinogram.numpy().astype(np.float32))
     print(f"Saved incomplete sinogram to {out_sinogram_path}")
     
-    # Visualize sinogram
-    try:
-        fig, ax = plt.subplots(1, 1, figsize=(8, 5))
-        im = ax.imshow(sinogram.numpy()[0, :, :42], cmap='magma')
-        ax.set_title(f'Incomplete Ring Sinogram (Index {index})')
-        ax.axis('off')
-        fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-        plt.tight_layout()
+    # Create enhanced visualizations
+    if vis_level >= 1:
+        # Basic visualization
+        sinogram_np = sinogram.numpy()
         
-        vis_filename = os.path.join(log_dir, f"incomplete_sinogram_{index}.pdf")
-        plt.savefig(vis_filename, dpi=300)
-        plt.close(fig)
-        print(f"Saved sinogram visualization to {vis_filename}")
-    except Exception as e:
-        print(f"Warning: Failed to visualize sinogram: {e}")
+        # Create multi-slice visualization
+        vis_multislice_path = os.path.join(vis_dir, f"sinogram_slices_index{index}.png")
+        visualize_sinogram_multislice(
+            sinogram_np,
+            vis_multislice_path,
+            title=f"Incomplete Ring Sinogram Slices (Index {index})",
+            num_slices=8  # Show more slices
+        )
+        print(f"Saved multi-slice visualization to {vis_multislice_path}")
+    
+    if vis_level >= 2:
+        # Detailed multi-perspective visualization
+        vis_multiperspective_path = os.path.join(vis_dir, f"sinogram_perspectives_index{index}.png")
+        visualize_sinogram_multi_perspective(
+            sinogram_np,
+            vis_multiperspective_path,
+            title=f"Multi-Perspective Incomplete Ring Sinogram (Index {index})"
+        )
+        print(f"Saved multi-perspective visualization to {vis_multiperspective_path}")
     
     total_time = time.time() - start_time
     print(f"Completed processing index {index} in {total_time:.2f} seconds")
@@ -276,6 +296,8 @@ def main():
                         help='Number of events (used for path construction)')
     parser.add_argument('--visualize', action='store_true',
                         help='Generate detector coverage visualization')
+    parser.add_argument('--vis_level', type=int, default=2, choices=[0, 1, 2],
+                        help='Visualization detail level (0=minimal, 1=basic, 2=detailed)')
     args = parser.parse_args()
     
     # Ensure base output directory exists
@@ -325,7 +347,8 @@ def main():
             output_dir=args.output_dir,
             log_dir=log_dir,
             missing_ids=missing_ids,
-            num_events=args.num_events
+            num_events=args.num_events,
+            vis_level=args.vis_level
         )
     
     print("\nAll files processed. Incomplete ring data generation complete.")

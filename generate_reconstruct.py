@@ -334,7 +334,7 @@ def main():
     all_threads = []
     
     # Process each image file
-    for i in range(0, 36):
+    for i in range(9, 36):
 
         # start time 
         t_start_total = time.time()

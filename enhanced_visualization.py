@@ -2,7 +2,7 @@
 """
 enhanced_visualization.py
 
-提供增强的可视化功能，用于PET数据的多切片和多角度可视化。
+提供增强的可视化功能，用于PET数据的多切片和多角度可视化，以及完整环与不完整环数据的比较。
 """
 
 import os
@@ -11,6 +11,7 @@ import matplotlib
 matplotlib.use('Agg')  # 非交互式后端
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
+from matplotlib.colors import Normalize
 
 def visualize_sinogram_multislice(sinogram, output_path, title="Sinogram Visualization", 
                                  slice_indices=None, num_slices=5, figsize=(15, 10)):
@@ -294,104 +295,105 @@ def visualize_multi_axial_views(volume, output_path, title="Multi-Axial Views", 
     
     return output_path
 
-def create_enhanced_visualizations_thread(image, result_3d, sinogram, log_dir, image_filename):
-    """在后台线程中创建增强可视化"""
-    import threading
+def compare_sinograms(complete_sinogram, incomplete_sinogram, output_path, 
+                     title="Complete vs Incomplete Sinogram Comparison", 
+                     slice_indices=None, num_slices=3, figsize=(18, 12)):
+    """
+    比较完整环和不完整环正弦图的差异。
     
-    def _create_visualizations():
-        # 确保使用非交互式后端
-        matplotlib.use('Agg')
-        
-        try:
-            # 创建输出目录
-            vis_dir = os.path.join(log_dir, "enhanced_visualizations")
-            os.makedirs(vis_dir, exist_ok=True)
-            
-            # 基础文件名（不带扩展名）
-            base_name = os.path.splitext(image_filename)[0]
-            
-            # 1. 多切片正弦图可视化
-            sinogram_vis_path = os.path.join(vis_dir, f"{base_name}_sinogram_slices.png")
-            visualize_sinogram_multislice(
-                sinogram.numpy(),
-                sinogram_vis_path,
-                title=f"Sinogram Multiple Slices ({base_name})",
-                num_slices=8
-            )
-            print(f"  -> Saved enhanced sinogram visualization to {sinogram_vis_path}")
-            
-            # 2. 体积多视角切片可视化
-            volume_vis_path = os.path.join(vis_dir, f"{base_name}_volume_views.png")
-            visualize_multi_axial_views(
-                result_3d,
-                volume_vis_path,
-                title=f"Reconstructed Volume: Multi-Axial Views ({base_name})"
-            )
-            print(f"  -> Saved enhanced volume visualization to {volume_vis_path}")
-            
-            # 3. 正弦图的多角度视图
-            sinogram_mp_path = os.path.join(vis_dir, f"{base_name}_sinogram_perspectives.png")
-            visualize_sinogram_multi_perspective(
-                sinogram.numpy(),
-                sinogram_mp_path,
-                title=f"Sinogram: Multi-Perspective View ({base_name})"
-            )
-            print(f"  -> Saved multi-perspective sinogram visualization to {sinogram_mp_path}")
-
-            # 4. 三视图比较（原始图像、重建图像和正弦图）
-            comparison_path = os.path.join(vis_dir, f"{base_name}_three_view_comparison.png")
-            create_three_view_comparison(
-                image=image,
-                result_3d=result_3d,
-                sinogram=sinogram.numpy(),
-                output_path=comparison_path,
-                title=f"Three-View Comparison ({base_name})"
-            )
-            print(f"  -> Saved three-view comparison to {comparison_path}")
-            
-        except Exception as e:
-            print(f"Warning: Failed to create enhanced visualizations: {e}")
-    
-    # 创建并启动线程
-    thread = threading.Thread(target=_create_visualizations)
-    thread.daemon = False
-    thread.start()
-    return thread
-
-def create_three_view_comparison(image, result_3d, sinogram, output_path, title="Three-View Comparison"):
-    """创建三视图比较：原始图像、重建图像和正弦图"""
+    Args:
+        complete_sinogram: 完整环正弦图数据
+        incomplete_sinogram: 不完整环正弦图数据
+        output_path: 输出图像保存路径
+        title: 图像标题
+        slice_indices: 要显示的切片索引，如果为None则自动选择
+        num_slices: 要显示的切片数量
+        figsize: 图像大小
+    """
     # 确保输出目录存在
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
-    # 获取切片索引
-    slice_index = result_3d.shape[2] // 2
+    # 检查两个正弦图的形状是否相同
+    if complete_sinogram.shape != incomplete_sinogram.shape:
+        print(f"Warning: Sinogram shapes don't match - Complete: {complete_sinogram.shape}, Incomplete: {incomplete_sinogram.shape}")
+        # 如果形状不同，尝试裁剪到最小共同大小
+        min_shape = [min(s1, s2) for s1, s2 in zip(complete_sinogram.shape, incomplete_sinogram.shape)]
+        complete_sinogram = complete_sinogram[:min_shape[0], :min_shape[1], :min_shape[2]]
+        incomplete_sinogram = incomplete_sinogram[:min_shape[0], :min_shape[1], :min_shape[2]]
     
-    # 创建图形和子图
-    fig, axs = plt.subplots(1, 3, figsize=(18, 6))
+    # 获取正弦图形状
+    depth = complete_sinogram.shape[2]
     
-    # 原始图像
-    im0 = axs[0].imshow(image[:, :, slice_index], cmap='magma', interpolation='nearest')
-    axs[0].set_title(f'Original Image Slice (z = {slice_index})')
-    axs[0].axis('off')
-    fig.colorbar(im0, ax=axs[0], fraction=0.046, pad=0.04)
+    # 如果未指定切片索引，则自动计算
+    if slice_indices is None:
+        # 均匀选择切片
+        slice_indices = np.linspace(0, min(41, depth-1), num_slices, dtype=int)
     
-    # 重建图像
-    im1 = axs[1].imshow(result_3d[:, :, slice_index], cmap='magma', interpolation='nearest')
-    axs[1].set_title(f'Reconstructed Slice')
-    axs[1].axis('off')
-    fig.colorbar(im1, ax=axs[1], fraction=0.046, pad=0.04)
+    # 创建差异正弦图(绝对差)
+    difference = np.abs(complete_sinogram - incomplete_sinogram)
     
-    # 正弦图
-    im2 = axs[2].imshow(sinogram[0, :, :42], cmap='magma', aspect='auto')
-    axs[2].set_title(f'Sinogram First 42 Slices')
-    axs[2].axis('off')
-    fig.colorbar(im2, ax=axs[2], fraction=0.046, pad=0.04)
+    # 创建图形
+    fig = plt.figure(figsize=figsize)
+    
+    # 为每个切片创建三行（完整环、不完整环、差异）
+    n_rows = num_slices
+    n_cols = 3
+    gs = GridSpec(n_rows, n_cols, figure=fig)
+    
+    # 为完整和不完整正弦图创建共享的颜色范围
+    vmin_all = min(np.percentile(complete_sinogram, 1), np.percentile(incomplete_sinogram, 1))
+    vmax_all = max(np.percentile(complete_sinogram, 99), np.percentile(incomplete_sinogram, 99))
+    
+    # 为差异图创建单独的颜色范围
+    vmin_diff = np.percentile(difference, 1)
+    vmax_diff = np.percentile(difference, 99)
+    
+    # 绘制每个切片的比较
+    for i, slice_idx in enumerate(slice_indices):
+        # 完整环正弦图
+        ax1 = fig.add_subplot(gs[i, 0])
+        slice_data_complete = complete_sinogram[:, :, slice_idx]
+        im1 = ax1.imshow(slice_data_complete, cmap='magma', aspect='auto', vmin=vmin_all, vmax=vmax_all)
+        ax1.set_title(f'Complete Ring (Slice {slice_idx})')
+        if i == n_rows - 1:  # 只在底行添加x轴标签
+            ax1.set_xlabel('Radial Position')
+        ax1.set_ylabel('Angle')
+        
+        # 不完整环正弦图
+        ax2 = fig.add_subplot(gs[i, 1])
+        slice_data_incomplete = incomplete_sinogram[:, :, slice_idx]
+        im2 = ax2.imshow(slice_data_incomplete, cmap='magma', aspect='auto', vmin=vmin_all, vmax=vmax_all)
+        ax2.set_title(f'Incomplete Ring (Slice {slice_idx})')
+        if i == n_rows - 1:
+            ax2.set_xlabel('Radial Position')
+        ax2.set_ylabel('Angle')
+        
+        # 差异正弦图
+        ax3 = fig.add_subplot(gs[i, 2])
+        slice_data_diff = difference[:, :, slice_idx]
+        im3 = ax3.imshow(slice_data_diff, cmap='hot', aspect='auto', vmin=vmin_diff, vmax=vmax_diff)
+        ax3.set_title(f'Absolute Difference (Slice {slice_idx})')
+        if i == n_rows - 1:
+            ax3.set_xlabel('Radial Position')
+        ax3.set_ylabel('Angle')
+    
+    # 添加颜色条
+    plt.tight_layout()
+    
+    # 为正弦图添加颜色条
+    cbar_ax1 = fig.add_axes([0.91, 0.55, 0.02, 0.3])  # [left, bottom, width, height]
+    cbar1 = fig.colorbar(im1, cax=cbar_ax1)
+    cbar1.set_label('Sinogram Intensity')
+    
+    # 为差异图添加颜色条
+    cbar_ax2 = fig.add_axes([0.91, 0.15, 0.02, 0.3])
+    cbar2 = fig.colorbar(im3, cax=cbar_ax2)
+    cbar2.set_label('Absolute Difference')
     
     # 添加全局标题
     fig.suptitle(title, fontsize=16, y=0.98)
     
-    # 调整布局并保存
-    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    # 保存图像
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close(fig)
     

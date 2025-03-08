@@ -9,9 +9,14 @@ import torch
 import time
 import threading
 from datetime import datetime
-import matplotlib.pyplot as plt
 import multiprocessing
 from concurrent.futures import ThreadPoolExecutor
+
+# 重要：在导入matplotlib之前设置后端为Agg（非交互式，线程安全）
+import matplotlib
+matplotlib.use('Agg')  # 必须在导入pyplot之前设置
+import matplotlib.pyplot as plt
+
 from pytomography.io.PET import gate, shared
 
 from pet_simulator.geometry import create_pet_geometry
@@ -85,6 +90,9 @@ def process_and_save_sinogram_background(events, info, output_path, log_dir=None
         image_filename: Original image filename for visualization
     """
     def _process_and_save():
+        # 确保在线程中使用非交互式后端
+        matplotlib.use('Agg')
+        
         # Convert events to detector IDs
         detector_ids = torch.from_numpy(events).to(torch.int32)
         
@@ -92,21 +100,26 @@ def process_and_save_sinogram_background(events, info, output_path, log_dir=None
         sinogram = gate.listmode_to_sinogram(detector_ids, info)
         
         # Cleanup detector_ids to save memory
-        # del detector_ids
+        del detector_ids
         
         # Optional visualization
         if log_dir is not None and image_filename is not None:
-            # This part runs in the background thread
-            fig, ax = plt.subplots(1, 1, figsize=(7, 4.5))
-            im0 = ax.imshow(sinogram.numpy()[0, :, :42], cmap='magma')
-            ax.set_title(f'Original Sinogram')
-            ax.axis('off')
-            fig.colorbar(im0, ax=ax, fraction=0.046, pad=0.04)
-            plt.tight_layout()
-            fig_filename = os.path.join(log_dir, f"sinogram_{image_filename}.pdf")
-            plt.savefig(fig_filename, dpi=300)
-            plt.close(fig)
-            print(f"  -> Saved sinogram figure to {fig_filename}")
+            try:
+                # 创建临时figure
+                fig, ax = plt.subplots(1, 1, figsize=(7, 4.5))
+                im0 = ax.imshow(sinogram.numpy()[0, :, :42], cmap='magma')
+                ax.set_title(f'Original Sinogram')
+                ax.axis('off')
+                fig.colorbar(im0, ax=ax, fraction=0.046, pad=0.04)
+                plt.tight_layout()
+                
+                # 保存并立即关闭
+                fig_filename = os.path.join(log_dir, f"sinogram_{image_filename}.pdf")
+                plt.savefig(fig_filename, dpi=300)
+                plt.close(fig)
+                print(f"  -> Saved sinogram figure to {fig_filename}")
+            except Exception as e:
+                print(f"Warning: Failed to save sinogram visualization: {e}")
         
         # Save sinogram
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -125,61 +138,67 @@ def create_comparison_visualizations(image, result_3d, log_dir, image_filename):
     """Create and save comparison visualizations between original and reconstructed images."""
     # Create visualizations in a background thread
     def _create_visualizations():
-        # Axial slice (z-axis)
-        slice_index = result_3d.shape[2] // 2
-        fig, axs = plt.subplots(1, 2, figsize=(15, 4.5))
-        im0 = axs[0].imshow(image[:, :, slice_index], cmap='magma', interpolation='nearest')
-        axs[0].set_title(f'Original Image Slice (z = {slice_index})')
-        axs[0].axis('off')
-        fig.colorbar(im0, ax=axs[0], fraction=0.046, pad=0.04)
+        # 确保在线程中使用非交互式后端
+        matplotlib.use('Agg')
         
-        im1 = axs[1].imshow(result_3d[:, :, slice_index], cmap='magma', interpolation='nearest')
-        axs[1].set_title(f'Reconstructed Slice (z = {slice_index})')
-        axs[1].axis('off')
-        fig.colorbar(im1, ax=axs[1], fraction=0.046, pad=0.04)
-        plt.tight_layout()
-        
-        fig_filename = os.path.join(log_dir, f"comparison_{image_filename}.pdf")
-        plt.savefig(fig_filename, dpi=300)
-        plt.close(fig)
-        
-        # Coronal slice (x-axis)
-        slice_index_x = result_3d.shape[0] // 2
-        fig2, axs2 = plt.subplots(1, 2, figsize=(15, 6))
-        im0 = axs2[0].imshow(image[slice_index_x, :, :], cmap='magma', interpolation='nearest')
-        axs2[0].set_title(f'Original Image Slice (x = {slice_index_x})')
-        axs2[0].axis('off')
-        fig2.colorbar(im0, ax=axs2[0], fraction=0.046, pad=0.04)
-        
-        im1 = axs2[1].imshow(result_3d[slice_index_x, :, :], cmap='magma', interpolation='nearest')
-        axs2[1].set_title(f'Reconstructed Slice (x = {slice_index_x})')
-        axs2[1].axis('off')
-        fig2.colorbar(im1, ax=axs2[1], fraction=0.046, pad=0.04)
-        plt.tight_layout()
-        
-        fig2_filename = os.path.join(log_dir, f"comparison_x_{image_filename}.pdf")
-        plt.savefig(fig2_filename, dpi=300)
-        plt.close(fig2)
-        
-        # Sagittal slice (y-axis)
-        slice_index_y = result_3d.shape[1] // 2
-        fig3, axs3 = plt.subplots(1, 2, figsize=(15, 4.5))
-        im0 = axs3[0].imshow(image[:, slice_index_y, :], cmap='magma', interpolation='nearest')
-        axs3[0].set_title(f'Original Image Slice (y = {slice_index_y})')
-        axs3[0].axis('off')
-        fig3.colorbar(im0, ax=axs3[0], fraction=0.046, pad=0.04)
-        
-        im1 = axs3[1].imshow(result_3d[:, slice_index_y, :], cmap='magma', interpolation='nearest')
-        axs3[1].set_title(f'Reconstructed Slice (y = {slice_index_y})')
-        axs3[1].axis('off')
-        fig3.colorbar(im1, ax=axs3[1], fraction=0.046, pad=0.04)
-        plt.tight_layout()
-        
-        fig3_filename = os.path.join(log_dir, f"comparison_y_{image_filename}.pdf")
-        plt.savefig(fig3_filename, dpi=300)
-        plt.close(fig3)
-        
-        print(f"  -> Saved comparison visualizations to {log_dir}")
+        try:
+            # Axial slice (z-axis)
+            slice_index = result_3d.shape[2] // 2
+            fig, axs = plt.subplots(1, 2, figsize=(15, 4.5))
+            im0 = axs[0].imshow(image[:, :, slice_index], cmap='magma', interpolation='nearest')
+            axs[0].set_title(f'Original Image Slice (z = {slice_index})')
+            axs[0].axis('off')
+            fig.colorbar(im0, ax=axs[0], fraction=0.046, pad=0.04)
+            
+            im1 = axs[1].imshow(result_3d[:, :, slice_index], cmap='magma', interpolation='nearest')
+            axs[1].set_title(f'Reconstructed Slice (z = {slice_index})')
+            axs[1].axis('off')
+            fig.colorbar(im1, ax=axs[1], fraction=0.046, pad=0.04)
+            plt.tight_layout()
+            
+            fig_filename = os.path.join(log_dir, f"comparison_{image_filename}.pdf")
+            plt.savefig(fig_filename, dpi=300)
+            plt.close(fig)
+            
+            # Coronal slice (x-axis)
+            slice_index_x = result_3d.shape[0] // 2
+            fig2, axs2 = plt.subplots(1, 2, figsize=(15, 6))
+            im0 = axs2[0].imshow(image[slice_index_x, :, :], cmap='magma', interpolation='nearest')
+            axs2[0].set_title(f'Original Image Slice (x = {slice_index_x})')
+            axs2[0].axis('off')
+            fig2.colorbar(im0, ax=axs2[0], fraction=0.046, pad=0.04)
+            
+            im1 = axs2[1].imshow(result_3d[slice_index_x, :, :], cmap='magma', interpolation='nearest')
+            axs2[1].set_title(f'Reconstructed Slice (x = {slice_index_x})')
+            axs2[1].axis('off')
+            fig2.colorbar(im1, ax=axs2[1], fraction=0.046, pad=0.04)
+            plt.tight_layout()
+            
+            fig2_filename = os.path.join(log_dir, f"comparison_x_{image_filename}.pdf")
+            plt.savefig(fig2_filename, dpi=300)
+            plt.close(fig2)
+            
+            # Sagittal slice (y-axis)
+            slice_index_y = result_3d.shape[1] // 2
+            fig3, axs3 = plt.subplots(1, 2, figsize=(15, 4.5))
+            im0 = axs3[0].imshow(image[:, slice_index_y, :], cmap='magma', interpolation='nearest')
+            axs3[0].set_title(f'Original Image Slice (y = {slice_index_y})')
+            axs3[0].axis('off')
+            fig3.colorbar(im0, ax=axs3[0], fraction=0.046, pad=0.04)
+            
+            im1 = axs3[1].imshow(result_3d[:, slice_index_y, :], cmap='magma', interpolation='nearest')
+            axs3[1].set_title(f'Reconstructed Slice (y = {slice_index_y})')
+            axs3[1].axis('off')
+            fig3.colorbar(im1, ax=axs3[1], fraction=0.046, pad=0.04)
+            plt.tight_layout()
+            
+            fig3_filename = os.path.join(log_dir, f"comparison_y_{image_filename}.pdf")
+            plt.savefig(fig3_filename, dpi=300)
+            plt.close(fig3)
+            
+            print(f"  -> Saved comparison visualizations to {log_dir}")
+        except Exception as e:
+            print(f"Warning: Failed to create comparison visualizations: {e}")
     
     thread = threading.Thread(target=_create_visualizations)
     thread.daemon = False
@@ -188,6 +207,9 @@ def create_comparison_visualizations(image, result_3d, log_dir, image_filename):
 
 def main():
     """Main function to simulate PET events, reconstruct volumes, and save results."""
+    # 在主函数开始时设置全局matplotlib后端为Agg
+    matplotlib.use('Agg')
+    
     # Create PET scanner geometry from info
     geometry = create_pet_geometry(info)
 
@@ -226,7 +248,7 @@ def main():
     all_threads = []
     
     # Process each image file
-    for i in range(49, 170):
+    for i in range(61, 170):
         image_filename = f"3d_image_{i}.npy"
         image_path = os.path.join(base_dir, image_filename)
         print(f"\nProcessing {image_filename} ...")
@@ -305,7 +327,7 @@ def main():
         print(f"Active background threads: {len(active_threads)}/{len(all_threads)}")
     
     # Wait for all background threads to complete
-    print(f"\nWaiting for {len(all_threads)} background threads to complete...")
+    print(f"\nWaiting for {len([t for t in all_threads if t.is_alive()])} background threads to complete...")
     for thread in all_threads:
         thread.join()
     

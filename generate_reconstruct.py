@@ -105,25 +105,106 @@ def process_and_save_sinogram_background(events, info, output_path, log_dir=None
         # Optional visualization
         if log_dir is not None and image_filename is not None:
             try:
-                # 创建临时figure
-                fig, ax = plt.subplots(1, 1, figsize=(7, 4.5))
-                im0 = ax.imshow(sinogram.numpy()[0, :, :42], cmap='magma')
-                ax.set_title(f'Original Sinogram')
-                ax.axis('off')
-                fig.colorbar(im0, ax=ax, fraction=0.046, pad=0.04)
+                # 获取正弦图形状和数据
+                sinogram_np = sinogram.numpy()
+                sinogram_shape = sinogram_np.shape
+                print(f"Sinogram shape: {sinogram_shape}")
+                
+                # 1. 创建原始的单切片正弦图可视化（保持原有功能）
+                fig1, ax1 = plt.subplots(1, 1, figsize=(7, 4.5))
+                im0 = ax1.imshow(sinogram_np[0, :, :42], cmap='magma')
+                ax1.set_title(f'Original Sinogram (First 42 Slices)')
+                ax1.axis('off')
+                fig1.colorbar(im0, ax=ax1, fraction=0.046, pad=0.04)
                 plt.tight_layout()
                 
-                # 保存并立即关闭
-                fig_filename = os.path.join(log_dir, f"sinogram_{image_filename}.pdf")
-                plt.savefig(fig_filename, dpi=300)
-                plt.close(fig)
-                print(f"  -> Saved sinogram figure to {fig_filename}")
+                # 保存原始的单切片可视化
+                fig1_filename = os.path.join(log_dir, f"sinogram_{image_filename}.pdf")
+                plt.savefig(fig1_filename, dpi=300)
+                plt.close(fig1)
+                print(f"  -> Saved original sinogram figure to {fig1_filename}")
+                
+                # 2. 创建多切片正弦图视图 (固定第一维，显示不同的第三维切片)
+                fig2, axs = plt.subplots(2, 3, figsize=(15, 8))
+                axs = axs.flatten()
+                
+                # 选择6个均匀分布的切片索引
+                depth = min(42, sinogram_np.shape[2])  # 使用前42个切片，如果有更少就用全部
+                slice_indices = np.linspace(0, depth-1, 6, dtype=int)
+                
+                # 固定第一维为0，遍历第三维的不同切片
+                for i, slice_idx in enumerate(slice_indices):
+                    # 使用[:, :, slice_idx]索引得到2D切片
+                    slice_data = sinogram_np[:, :, slice_idx]
+                    axs[i].imshow(slice_data, cmap='magma', aspect='auto')
+                    axs[i].set_title(f'Ring Slice {slice_idx}')
+                    axs[i].set_xlabel('Radial Position')
+                    axs[i].set_ylabel('Angle')
+                
+                plt.tight_layout()
+                fig2_filename = os.path.join(log_dir, f"sinogram_multislice_{image_filename}.pdf")
+                plt.savefig(fig2_filename, dpi=300)
+                plt.close(fig2)
+                print(f"  -> Saved multi-slice sinogram to {fig2_filename}")
+                
+                # # 3. 创建不同视角的切片可视化
+                # fig3, axs = plt.subplots(1, 2, figsize=(16, 6))
+                
+                # # 取第一个角度的切片(固定第一维为0)，显示径向-环差视图
+                # middle_radial = sinogram_np.shape[1] // 2
+                # radial_slice = sinogram_np[0, middle_radial, :depth]  # 取中间径向位置
+                
+                # # 创建2D网格以显示1D数据
+                # x = np.arange(len(radial_slice))
+                # X, Y = np.meshgrid(x, np.array([0]))
+                
+                # # 以伪彩色方式显示1D数据
+                # im1 = axs[0].scatter(X, Y, c=radial_slice, cmap='magma', s=50)
+                # axs[0].set_title(f'Radial-Ring Slice (Middle Radial Position)')
+                # axs[0].set_xlabel('Ring Difference')
+                # axs[0].set_yticks([])  # 隐藏Y轴刻度
+                # axs[0].set_ylim(-0.5, 0.5)  # 固定Y轴范围
+                # fig3.colorbar(im1, ax=axs[0])
+                
+                # # 显示角度-环差视图
+                # middle_angle = sinogram_np.shape[0] // 2
+                # angle_slice = sinogram_np[:, :, 0].T  # 转置使角度在水平轴上
+                # im2 = axs[1].imshow(angle_slice, cmap='magma', aspect='auto')
+                # axs[1].set_title(f'Angle-Radial View (First Ring)')
+                # axs[1].set_xlabel('Angle')
+                # axs[1].set_ylabel('Radial Position')
+                # fig3.colorbar(im2, ax=axs[1])
+                
+                # plt.tight_layout()
+                # fig3_filename = os.path.join(log_dir, f"sinogram_side_views_{image_filename}.pdf")
+                # plt.savefig(fig3_filename, dpi=300)
+                # plt.close(fig3)
+                # print(f"  -> Saved side-view sinogram to {fig3_filename}")
+                
+                # 4. 创建单个第三维切片的详细视图
+                fig4, ax4 = plt.subplots(1, 1, figsize=(12, 8))
+                middle_slice = min(20, depth-1)  # 选择第20个切片或最大可用切片
+                slice_data = sinogram_np[:, :, middle_slice]
+                im4 = ax4.imshow(slice_data, cmap='magma', aspect='auto')
+                ax4.set_title(f'Detailed Sinogram Slice (Ring Difference = {middle_slice})')
+                ax4.set_xlabel('Radial Position')
+                ax4.set_ylabel('Angle')
+                fig4.colorbar(im4)
+                plt.tight_layout()
+                
+                fig4_filename = os.path.join(log_dir, f"sinogram_detailed_slice_{image_filename}.pdf")
+                plt.savefig(fig4_filename, dpi=300)
+                plt.close(fig4)
+                print(f"  -> Saved detailed slice visualization to {fig4_filename}")
+                
             except Exception as e:
                 print(f"Warning: Failed to save sinogram visualization: {e}")
+                import traceback
+                traceback.print_exc()
         
         # Save sinogram
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        np.save(output_path, sinogram.numpy().astype(np.float32))
+        np.save(output_path, sinogram_np.astype(np.float32))
         
         # Cleanup to save memory
         del sinogram
@@ -220,10 +301,15 @@ def main():
     lut_file = 'detector_lut.txt'
 
     # Define directories
-    base_dir = "data/dataset/train_npy_crop"
-    lmf_output_dir = f'/mnt/d/fyq/sinogram/reconstruction_npy_full_train/{num_events:d}/listmode'
-    output_dir = f'/mnt/d/fyq/sinogram/reconstruction_npy_full_train/{num_events:d}'
-    output_dir_sinogram = f'/mnt/d/fyq/sinogram/reconstruction_npy_full_train/{num_events:d}/sinogram'
+    # base_dir = "data/dataset/train_npy_crop"
+    # lmf_output_dir = f'/mnt/d/fyq/sinogram/reconstruction_npy_full_train/{num_events:d}/listmode'
+    # output_dir = f'/mnt/d/fyq/sinogram/reconstruction_npy_full_train/{num_events:d}'
+    # output_dir_sinogram = f'/mnt/d/fyq/sinogram/reconstruction_npy_full_train/{num_events:d}/sinogram'
+
+    base_dir = "data/dataset/test_npy_crop"
+    lmf_output_dir = f'/mnt/d/fyq/sinogram/reconstruction_npy_full_test/{num_events:d}/listmode'
+    output_dir = f'/mnt/d/fyq/sinogram/reconstruction_npy_full_test/{num_events:d}'
+    output_dir_sinogram = f'/mnt/d/fyq/sinogram/reconstruction_npy_full_test/{num_events:d}/sinogram'
     
     # Create directories
     os.makedirs(lmf_output_dir, exist_ok=True)
@@ -248,7 +334,7 @@ def main():
     all_threads = []
     
     # Process each image file
-    for i in range(61, 170):
+    for i in range(0, 36):
 
         # start time 
         t_start_total = time.time()

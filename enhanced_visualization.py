@@ -293,3 +293,106 @@ def visualize_multi_axial_views(volume, output_path, title="Multi-Axial Views", 
     plt.close(fig)
     
     return output_path
+
+def create_enhanced_visualizations_thread(image, result_3d, sinogram, log_dir, image_filename):
+    """在后台线程中创建增强可视化"""
+    import threading
+    
+    def _create_visualizations():
+        # 确保使用非交互式后端
+        matplotlib.use('Agg')
+        
+        try:
+            # 创建输出目录
+            vis_dir = os.path.join(log_dir, "enhanced_visualizations")
+            os.makedirs(vis_dir, exist_ok=True)
+            
+            # 基础文件名（不带扩展名）
+            base_name = os.path.splitext(image_filename)[0]
+            
+            # 1. 多切片正弦图可视化
+            sinogram_vis_path = os.path.join(vis_dir, f"{base_name}_sinogram_slices.png")
+            visualize_sinogram_multislice(
+                sinogram.numpy(),
+                sinogram_vis_path,
+                title=f"Sinogram Multiple Slices ({base_name})",
+                num_slices=8
+            )
+            print(f"  -> Saved enhanced sinogram visualization to {sinogram_vis_path}")
+            
+            # 2. 体积多视角切片可视化
+            volume_vis_path = os.path.join(vis_dir, f"{base_name}_volume_views.png")
+            visualize_multi_axial_views(
+                result_3d,
+                volume_vis_path,
+                title=f"Reconstructed Volume: Multi-Axial Views ({base_name})"
+            )
+            print(f"  -> Saved enhanced volume visualization to {volume_vis_path}")
+            
+            # 3. 正弦图的多角度视图
+            sinogram_mp_path = os.path.join(vis_dir, f"{base_name}_sinogram_perspectives.png")
+            visualize_sinogram_multi_perspective(
+                sinogram.numpy(),
+                sinogram_mp_path,
+                title=f"Sinogram: Multi-Perspective View ({base_name})"
+            )
+            print(f"  -> Saved multi-perspective sinogram visualization to {sinogram_mp_path}")
+
+            # 4. 三视图比较（原始图像、重建图像和正弦图）
+            comparison_path = os.path.join(vis_dir, f"{base_name}_three_view_comparison.png")
+            create_three_view_comparison(
+                image=image,
+                result_3d=result_3d,
+                sinogram=sinogram.numpy(),
+                output_path=comparison_path,
+                title=f"Three-View Comparison ({base_name})"
+            )
+            print(f"  -> Saved three-view comparison to {comparison_path}")
+            
+        except Exception as e:
+            print(f"Warning: Failed to create enhanced visualizations: {e}")
+    
+    # 创建并启动线程
+    thread = threading.Thread(target=_create_visualizations)
+    thread.daemon = False
+    thread.start()
+    return thread
+
+def create_three_view_comparison(image, result_3d, sinogram, output_path, title="Three-View Comparison"):
+    """创建三视图比较：原始图像、重建图像和正弦图"""
+    # 确保输出目录存在
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    
+    # 获取切片索引
+    slice_index = result_3d.shape[2] // 2
+    
+    # 创建图形和子图
+    fig, axs = plt.subplots(1, 3, figsize=(18, 6))
+    
+    # 原始图像
+    im0 = axs[0].imshow(image[:, :, slice_index], cmap='magma', interpolation='nearest')
+    axs[0].set_title(f'Original Image Slice (z = {slice_index})')
+    axs[0].axis('off')
+    fig.colorbar(im0, ax=axs[0], fraction=0.046, pad=0.04)
+    
+    # 重建图像
+    im1 = axs[1].imshow(result_3d[:, :, slice_index], cmap='magma', interpolation='nearest')
+    axs[1].set_title(f'Reconstructed Slice')
+    axs[1].axis('off')
+    fig.colorbar(im1, ax=axs[1], fraction=0.046, pad=0.04)
+    
+    # 正弦图
+    im2 = axs[2].imshow(sinogram[0, :, :42], cmap='magma', aspect='auto')
+    axs[2].set_title(f'Sinogram First 42 Slices')
+    axs[2].axis('off')
+    fig.colorbar(im2, ax=axs[2], fraction=0.046, pad=0.04)
+    
+    # 添加全局标题
+    fig.suptitle(title, fontsize=16, y=0.98)
+    
+    # 调整布局并保存
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.close(fig)
+    
+    return output_path

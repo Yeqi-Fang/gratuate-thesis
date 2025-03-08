@@ -249,6 +249,10 @@ def main():
     
     # Process each image file
     for i in range(61, 170):
+
+        # start time 
+        t_start_total = time.time()
+
         image_filename = f"3d_image_{i}.npy"
         image_path = os.path.join(base_dir, image_filename)
         print(f"\nProcessing {image_filename} ...")
@@ -325,7 +329,10 @@ def main():
             active_threads = [t for t in all_threads if t.is_alive()]
         
         print(f"Active background threads: {len(active_threads)}/{len(all_threads)}")
-    
+
+        t_end_total = time.time()
+        print(f"Elapsed total time: {t_end_total - t_start_total}")
+        
     # Wait for all background threads to complete
     print(f"\nWaiting for {len([t for t in all_threads if t.is_alive()])} background threads to complete...")
     for thread in all_threads:

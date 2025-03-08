@@ -20,7 +20,7 @@ os.environ['NEURITE_BACKEND'] = 'pytorch'
 os.environ['VXM_BACKEND'] = 'pytorch'
 import voxelmorph as vxm  # nopep8
 
-import dataloader
+import spare.dataloader as dataloader
 
 # parse the commandline
 parser = argparse.ArgumentParser()

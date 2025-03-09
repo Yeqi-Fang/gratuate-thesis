@@ -1,7 +1,7 @@
 python listmode_to_incomplete.py \
 --input_dir /mnt/d/fyq/sinogram/reconstruction_npy_full_train/2000000000/listmode \
---output_dir /mnt/d/fyq/sinogram/reconstruction_npy_full_train/2000000000/incomplete \
---sinogram_dir /mnt/d/fyq/sinogram/reconstruction_npy_full_train/2000000000/sinogram \
+--output_dir /mnt/d/fyq/sinogram/reconstruction_npy_full_train/2000000000/listmode_i \
+--sinogram_dir /mnt/d/fyq/sinogram/reconstruction_npy_full_train/2000000000/sinogram_i \
 --num_events 2000000000 \
 --visualize \
 --missing_start1 30 --missing_end1 90 \

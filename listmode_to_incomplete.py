@@ -164,25 +164,49 @@ def filter_listmode_data(events, missing_ids):
     Filter listmode data to remove events involving missing detectors.
     
     Args:
-        events: Numpy array of detector ID pairs
+        events: Numpy array of detector ID pairs (can be structured array or 2D array)
         missing_ids: Set of detector IDs considered missing
     
     Returns:
         Filtered events array
     """
-    # Extract detector IDs
-    det1_ids = events[:, 0]
-    det2_ids = events[:, 1]
+    # 检查数据格式并适应不同的格式
+    if hasattr(events, 'dtype') and events.dtype.names is not None:
+        # 处理结构化数组（如 .npz 文件中的数据）
+        if 'det1_id' in events.dtype.names and 'det2_id' in events.dtype.names:
+            # 直接访问具名字段
+            det1_ids = events['det1_id']
+            det2_ids = events['det2_id']
+        else:
+            # 尝试访问前两个字段
+            field_names = events.dtype.names
+            det1_ids = events[field_names[0]]
+            det2_ids = events[field_names[1]]
+    elif len(events.shape) >= 2 and events.shape[1] >= 2:
+        # 处理标准二维数组
+        det1_ids = events[:, 0]
+        det2_ids = events[:, 1]
+    else:
+        raise ValueError(f"Unsupported event data format: shape={events.shape}, dtype={events.dtype}")
     
-    # Build boolean mask for valid events (neither detector in missing_ids)
+    # 构建布尔掩码，用于识别有效事件（两个探测器都不在missing_ids中）
     mask_missing_det1 = np.isin(det1_ids, list(missing_ids))
     mask_missing_det2 = np.isin(det2_ids, list(missing_ids))
     
-    # Keep only events where neither detector is missing
+    # 只保留两个探测器都不在缺失区域的事件
     valid_mask = ~(mask_missing_det1 | mask_missing_det2)
-    filtered_events = events[valid_mask]
     
-    return filtered_events
+    # 根据原始数据类型返回适当格式的过滤数据
+    if hasattr(events, 'dtype') and events.dtype.names is not None:
+        # 返回结构化数组的过滤版本
+        return events[valid_mask]
+    elif len(events.shape) >= 2:
+        # 返回二维数组的过滤版本
+        return events[valid_mask]
+    else:
+        raise ValueError("Unable to filter events: unsupported data format")
+    
+
 
 def load_complete_sinogram(sinogram_dir, index, num_events):
     """
@@ -216,8 +240,8 @@ def process_and_compare_sinograms_background(complete_sinogram, incomplete_sinog
     Process and compare complete and incomplete sinograms in a background thread.
     
     Args:
-        complete_sinogram: Complete ring sinogram data
-        incomplete_sinogram: Incomplete ring sinogram data
+        complete_sinogram: Complete ring sinogram data (numpy array)
+        incomplete_sinogram: Incomplete ring sinogram data (torch tensor or numpy array)
         output_dir: Output directory for saving results
         log_dir: Log directory for visualizations
         image_index: Index of the image being processed
@@ -231,37 +255,143 @@ def process_and_compare_sinograms_background(complete_sinogram, incomplete_sinog
             vis_dir = os.path.join(log_dir, "visualizations")
             os.makedirs(vis_dir, exist_ok=True)
             
-            # 生成比较可视化
-            compare_path = os.path.join(
-                vis_dir, 
-                f"sinogram_comparison_index{image_index}.png"
-            )
+            # 确保incomplete_sinogram是numpy数组
+            if torch.is_tensor(incomplete_sinogram):
+                incomplete_sinogram_np = incomplete_sinogram.cpu().numpy()
+            else:
+                incomplete_sinogram_np = incomplete_sinogram
             
-            # 使用增强的可视化函数生成比较图
-            compare_sinograms(
-                complete_sinogram=complete_sinogram,
-                incomplete_sinogram=incomplete_sinogram,
-                output_path=compare_path,
-                title=f"Complete vs Incomplete Sinogram Comparison (Index {image_index})",
-                num_slices=3
-            )
+            # 获取形状信息
+            incomplete_shape = incomplete_sinogram_np.shape
+            complete_shape = complete_sinogram.shape
             
-            print(f"  -> Saved sinogram comparison to {compare_path}")
+            print(f"Sinogram shapes - Complete: {complete_shape}, Incomplete: {incomplete_shape}")
             
-            # 可选：为不完整环正弦图单独创建多切片可视化
-            multislice_path = os.path.join(
-                vis_dir, 
-                f"incomplete_sinogram_multislice_index{image_index}.png"
-            )
+            # 确保我们可以比较相同大小的数据
+            if complete_shape != incomplete_shape:
+                print(f"Warning: Sinogram shapes do not match. Resizing for visualization.")
+                # 如果形状不同，可能需要进行裁剪或填充，这里简化处理
+                min_shape = [min(s1, s2) for s1, s2 in zip(complete_shape, incomplete_shape)]
+                incomplete_sinogram_np = incomplete_sinogram_np[:min_shape[0], :min_shape[1], :min_shape[2]]
+                complete_sinogram = complete_sinogram[:min_shape[0], :min_shape[1], :min_shape[2]]
             
-            visualize_sinogram_multislice(
-                sinogram=incomplete_sinogram,
-                output_path=multislice_path,
-                title=f"Incomplete Ring Sinogram Multislice (Index {image_index})",
-                num_slices=8
-            )
+            # 计算差异图
+            difference = complete_sinogram - incomplete_sinogram_np
             
-            print(f"  -> Saved incomplete sinogram multislice to {multislice_path}")
+            # 1. 单切片比较可视化
+            fig1, axs1 = plt.subplots(1, 3, figsize=(18, 5))
+            
+            # 选择第一个角度的第42个切片用于显示，或最大可用切片
+            slice_idx = min(42, incomplete_shape[2]-1)
+            
+            # 完整环
+            im1 = axs1[0].imshow(complete_sinogram[0, :, :slice_idx], cmap='magma')
+            axs1[0].set_title(f'Complete Ring Sinogram (First {slice_idx} Slices)')
+            axs1[0].axis('off')
+            fig1.colorbar(im1, ax=axs1[0], fraction=0.046, pad=0.04)
+            
+            # 不完整环
+            im2 = axs1[1].imshow(incomplete_sinogram_np[0, :, :slice_idx], cmap='magma')
+            axs1[1].set_title(f'Incomplete Ring Sinogram (First {slice_idx} Slices)')
+            axs1[1].axis('off')
+            fig1.colorbar(im2, ax=axs1[1], fraction=0.046, pad=0.04)
+            
+            # 差异
+            im3 = axs1[2].imshow(difference[0, :, :slice_idx], cmap='coolwarm')
+            axs1[2].set_title(f'Difference (Complete - Incomplete)')
+            axs1[2].axis('off')
+            fig1.colorbar(im3, ax=axs1[2], fraction=0.046, pad=0.04)
+            
+            plt.tight_layout()
+            fig1_filename = os.path.join(vis_dir, f"sinogram_comparison_index{image_index}.pdf")
+            plt.savefig(fig1_filename, dpi=300)
+            plt.close(fig1)
+            print(f"  -> Saved sinogram comparison to {fig1_filename}")
+            
+            # 2. 多切片可视化对比
+            fig2, axs2 = plt.subplots(2, 6, figsize=(20, 8))
+            
+            # 使用前42个切片，或者如果有更少的就用全部
+            depth = min(42, incomplete_shape[2])
+            slice_indices = np.linspace(0, depth-1, 6, dtype=int)
+            
+            # 完整环多切片
+            for i, slice_idx in enumerate(slice_indices):
+                axs2[0, i].imshow(complete_sinogram[:, :, slice_idx], cmap='magma', aspect='auto')
+                axs2[0, i].set_title(f'Complete: Ring Slice {slice_idx}')
+                if i == 0:
+                    axs2[0, i].set_ylabel('Angle')
+            
+            # 不完整环多切片
+            for i, slice_idx in enumerate(slice_indices):
+                axs2[1, i].imshow(incomplete_sinogram_np[:, :, slice_idx], cmap='magma', aspect='auto')
+                axs2[1, i].set_title(f'Incomplete: Ring Slice {slice_idx}')
+                axs2[1, i].set_xlabel('Radial Position')
+                if i == 0:
+                    axs2[1, i].set_ylabel('Angle')
+            
+            plt.tight_layout()
+            fig2_filename = os.path.join(vis_dir, f"sinogram_multislice_comparison_index{image_index}.pdf")
+            plt.savefig(fig2_filename, dpi=300)
+            plt.close(fig2)
+            print(f"  -> Saved multi-slice comparison to {fig2_filename}")
+            
+            # 3. 详细的单切片对比
+            fig3, axs3 = plt.subplots(1, 3, figsize=(18, 6))
+            
+            # 选择切片索引
+            middle_slice = min(20, depth-1)
+            
+            # 完整环详细切片
+            complete_slice = complete_sinogram[:, :, middle_slice]
+            im1 = axs3[0].imshow(complete_slice, cmap='magma', aspect='auto')
+            axs3[0].set_title(f'Complete: Detailed Slice (Ring {middle_slice})')
+            axs3[0].set_xlabel('Radial Position')
+            axs3[0].set_ylabel('Angle')
+            fig3.colorbar(im1, ax=axs3[0])
+            
+            # 不完整环详细切片
+            incomplete_slice = incomplete_sinogram_np[:, :, middle_slice]
+            im2 = axs3[1].imshow(incomplete_slice, cmap='magma', aspect='auto')
+            axs3[1].set_title(f'Incomplete: Detailed Slice (Ring {middle_slice})')
+            axs3[1].set_xlabel('Radial Position')
+            axs3[1].set_ylabel('Angle')
+            fig3.colorbar(im2, ax=axs3[1])
+            
+            # 差异详细切片
+            diff_slice = complete_slice - incomplete_slice
+            im3 = axs3[2].imshow(diff_slice, cmap='coolwarm', aspect='auto')
+            axs3[2].set_title(f'Difference: Detailed Slice (Ring {middle_slice})')
+            axs3[2].set_xlabel('Radial Position')
+            axs3[2].set_ylabel('Angle')
+            fig3.colorbar(im3, ax=axs3[2])
+            
+            plt.tight_layout()
+            fig3_filename = os.path.join(vis_dir, f"sinogram_detailed_comparison_index{image_index}.pdf")
+            plt.savefig(fig3_filename, dpi=300)
+            plt.close(fig3)
+            print(f"  -> Saved detailed slice comparison to {fig3_filename}")
+            
+            # 4. 生成一个缺失数据的热图，显示哪些区域缺失了数据
+            try:
+                fig4, ax4 = plt.subplots(figsize=(10, 8))
+                
+                # 创建一个掩码，显示哪些区域缺失了数据
+                missing_mask = np.abs(complete_sinogram.sum(axis=2) - incomplete_sinogram_np.sum(axis=2)) > 0.1
+                
+                # 将掩码转换为热图
+                im4 = ax4.imshow(missing_mask, cmap='Reds', aspect='auto')
+                ax4.set_title(f'Missing Data Regions (Red = Missing)')
+                ax4.set_xlabel('Radial Position')
+                ax4.set_ylabel('Angle')
+                
+                plt.tight_layout()
+                fig4_filename = os.path.join(vis_dir, f"sinogram_missing_regions_index{image_index}.pdf")
+                plt.savefig(fig4_filename, dpi=300)
+                plt.close(fig4)
+                print(f"  -> Saved missing regions visualization to {fig4_filename}")
+            except Exception as e:
+                print(f"Warning: Could not generate missing regions visualization: {e}")
             
         except Exception as e:
             print(f"Warning: Failed to generate sinogram comparison: {e}")
@@ -272,6 +402,7 @@ def process_and_compare_sinograms_background(complete_sinogram, incomplete_sinog
     thread.daemon = False  # 确保线程不会随主程序退出而终止
     thread.start()
     return thread
+
 
 def process_listmode_file(input_file, output_dir, complete_sinogram_dir, log_dir, missing_ids, num_events, vis_level=2):
     """
@@ -301,26 +432,64 @@ def process_listmode_file(input_file, output_dir, complete_sinogram_dir, log_dir
     
     # Load listmode data
     try:
-        events = np.load(input_file)
-        if isinstance(events, np.ndarray):
-            events_data = events
+        data = np.load(input_file)
+        
+        # 根据数据类型提取事件
+        if isinstance(data, np.ndarray):
+            # 如果直接加载为数组
+            events_data = data
         else:
-            # It's an .npz file
-            if 'listmode' in events:
-                events_data = events['listmode']
+            # 如果是.npz文件
+            if 'listmode' in data:
+                events_data = data['listmode']
             else:
-                events_data = next(iter(events.values()))
+                # 尝试获取第一个数组
+                try:
+                    events_data = next(iter(data.values()))
+                except:
+                    # 直接打印数据内容以便调试
+                    print(f"Data keys: {list(data.keys())}")
+                    raise ValueError(f"Cannot extract event data from {input_file}")
     except Exception as e:
         print(f"Error loading file {input_file}: {e}")
         return
     
-    print(f"Loaded {len(events_data)} events from {input_file}")
+    print(f"Loaded events from {input_file}, format: shape={events_data.shape}, dtype={events_data.dtype}")
+    
+    # 检查事件数量
+    if hasattr(events_data, 'shape'):
+        if len(events_data.shape) == 1 and hasattr(events_data, 'dtype') and events_data.dtype.names is not None:
+            # 结构化数组
+            num_loaded_events = len(events_data)
+        else:
+            # 常规数组
+            num_loaded_events = events_data.shape[0]
+    else:
+        num_loaded_events = "unknown"
+    
+    print(f"Loaded {num_loaded_events} events from {input_file}")
     
     # Filter events to create incomplete ring data
-    filtered_events = filter_listmode_data(events_data, missing_ids)
-    print(f"Filtered to {len(filtered_events)} events ({len(filtered_events)/len(events_data)*100:.1f}% of original)")
+    try:
+        filtered_events = filter_listmode_data(events_data, missing_ids)
+        
+        # 获取过滤后的事件数量
+        if hasattr(filtered_events, 'shape'):
+            if len(filtered_events.shape) == 1 and hasattr(filtered_events, 'dtype') and filtered_events.dtype.names is not None:
+                num_filtered_events = len(filtered_events)
+            else:
+                num_filtered_events = filtered_events.shape[0]
+        else:
+            num_filtered_events = "unknown"
+            
+        print(f"Filtered to {num_filtered_events} events ({float(num_filtered_events)/float(num_loaded_events)*100:.1f}% of original)")
+    except Exception as e:
+        print(f"Error filtering events: {e}")
+        import traceback
+        traceback.print_exc()
+        return
     
-    if len(filtered_events) == 0:
+    if isinstance(num_filtered_events, (int, float)) and num_filtered_events == 0:
         print("Warning: All events were filtered out. Check missing sectors configuration.")
         return
     
@@ -340,45 +509,67 @@ def process_listmode_file(input_file, output_dir, complete_sinogram_dir, log_dir
     save_thread.start()
     
     # Convert filtered events to detector IDs for sinogram generation
-    detector_ids = torch.from_numpy(filtered_events).to(torch.int32)
-    
-    # Generate sinogram
-    print("Generating sinogram from incomplete data...")
-    incomplete_sinogram = gate.listmode_to_sinogram(detector_ids, info)
-    
-    # Save incomplete sinogram
-    out_sinogram_path = os.path.join(incomplete_sinogram_dir, f"incomplete_index{index}_num{num_events}")
-    np.save(out_sinogram_path, incomplete_sinogram.numpy().astype(np.float32))
-    print(f"Saved incomplete sinogram to {out_sinogram_path}")
-    
-    # 尝试加载对应的完整环正弦图进行比较
-    complete_sinogram = load_complete_sinogram(complete_sinogram_dir, index, num_events)
-    
-    # 如果找到完整环正弦图，在后台线程中进行比较可视化
-    if complete_sinogram is not None and vis_level >= 1:
-        print("Found matching complete sinogram, generating comparison...")
-        comparison_thread = process_and_compare_sinograms_background(
-            complete_sinogram=complete_sinogram,
-            incomplete_sinogram=incomplete_sinogram.numpy(),
-            output_dir=output_dir,
-            log_dir=log_dir,
-            image_index=index
-        )
-    else:
-        print("No matching complete sinogram found for comparison.")
-        # 即使没有完整环数据，也为不完整环数据单独创建可视化
-        if vis_level >= 1:
-            visualize_sinogram_multislice(
-                sinogram=incomplete_sinogram.numpy(),
-                output_path=os.path.join(log_dir, f"incomplete_sinogram_index{index}.png"),
-                title=f"Incomplete Ring Sinogram (Index {index})",
-                num_slices=6
+    # 确保数据是适当的形式传递给gate.listmode_to_sinogram
+    try:
+        # 为listmode_to_sinogram转换数据格式
+        if hasattr(filtered_events, 'dtype') and filtered_events.dtype.names is not None:
+            # 从结构化数组创建适当的torch张量
+            if 'det1_id' in filtered_events.dtype.names and 'det2_id' in filtered_events.dtype.names:
+                detector_ids = torch.tensor(
+                    np.column_stack((filtered_events['det1_id'], filtered_events['det2_id'])),
+                    dtype=torch.int32
+                )
+            else:
+                # 使用前两个字段
+                field_names = filtered_events.dtype.names
+                detector_ids = torch.tensor(
+                    np.column_stack((filtered_events[field_names[0]], filtered_events[field_names[1]])),
+                    dtype=torch.int32
+                )
+        else:
+            # 假设已经是二维数组
+            detector_ids = torch.from_numpy(filtered_events[:, :2]).to(torch.int32)
+            
+        # 生成正弦图
+        print("Generating sinogram from incomplete data...")
+        incomplete_sinogram = gate.listmode_to_sinogram(detector_ids, info)
+        
+        # 保存不完整正弦图
+        out_sinogram_path = os.path.join(incomplete_sinogram_dir, f"incomplete_index{index}_num{num_events}")
+        np.save(out_sinogram_path, incomplete_sinogram.numpy().astype(np.float32))
+        print(f"Saved incomplete sinogram to {out_sinogram_path}")
+        
+        # 尝试加载对应的完整环正弦图进行比较
+        complete_sinogram = load_complete_sinogram(complete_sinogram_dir, index, num_events)
+        
+        # 如果找到完整环正弦图，在后台线程中进行比较可视化
+        if complete_sinogram is not None and vis_level >= 1:
+            print("Found matching complete sinogram, generating comparison...")
+            comparison_thread = process_and_compare_sinograms_background(
+                complete_sinogram=complete_sinogram,
+                incomplete_sinogram=incomplete_sinogram.numpy(),
+                output_dir=output_dir,
+                log_dir=log_dir,
+                image_index=index
             )
+        else:
+            print("No matching complete sinogram found for comparison.")
+            # 即使没有完整环数据，也为不完整环数据单独创建可视化
+            if vis_level >= 1:
+                visualize_sinogram_multislice(
+                    sinogram=incomplete_sinogram.numpy(),
+                    output_path=os.path.join(log_dir, f"incomplete_sinogram_index{index}.png"),
+                    title=f"Incomplete Ring Sinogram (Index {index})",
+                    num_slices=6
+                )
+    except Exception as e:
+        print(f"Error generating sinogram: {e}")
+        import traceback
+        traceback.print_exc()
     
     # 等待后台保存线程完成
     save_thread.join()
     print(f"Completed processing index {index} in {time.time() - start_time:.2f} seconds")
-
 def main():
     parser = argparse.ArgumentParser(description='Convert complete listmode data to incomplete ring data')
     parser.add_argument('--input_dir', type=str, required=True, 

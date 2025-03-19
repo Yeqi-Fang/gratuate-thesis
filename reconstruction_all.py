@@ -228,7 +228,7 @@ def main():
     lmf_root = os.path.normpath(args.lmf_root)
     print(lmf_root)
     print(os.listdir(lmf_root))
-    pattern = os.path.join(lmf_root, "*minimal*.npz")
+    pattern = os.path.join(lmf_root, "*.npz")
     print(pattern)
     lmf_files = sorted(glob.glob(pattern, recursive=False))
 

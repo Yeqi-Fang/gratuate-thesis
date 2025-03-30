@@ -85,19 +85,14 @@ def merge_sinogram_files(input_base_dir, output_base_dir):
 
 def main():
     # Process both train and test directories
-    input_base_dir = "2e9div"
-    output_base_dir = "2e9merged"
+    input_dir = "/mnt/d/fyq/sinogram/2e9div_smooth/recover/20250327_182411"
+    output_dir = "/mnt/d/fyq/sinogram/2e9div_smooth/merger/20250327_182411"
     
-    # Make sure the subdirectories exist in the input directory
-    for subdir in ["test"]:
-        input_dir = os.path.join(input_base_dir, subdir)
-        output_dir = os.path.join(output_base_dir, subdir)
-        
-        if os.path.exists(input_dir):
-            print(f"Processing files in {input_dir}...")
-            merge_sinogram_files(input_dir, output_dir)
-        else:
-            print(f"Directory {input_dir} not found, skipping")
+    if os.path.exists(input_dir):
+        print(f"Processing files in {input_dir}...")
+        merge_sinogram_files(input_dir, output_dir)
+    else:
+        print(f"Directory {input_dir} not found, skipping")
     
     print("All processing complete!")
 

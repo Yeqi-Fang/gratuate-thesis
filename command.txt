@@ -13,3 +13,5 @@ python gratuate-thesis/listmode_to_incomplete.py --input_dir /mnt/d/fyq/sinogram
 python sinogram_reconstruction.py --sinogram_dir /mnt/c/Users/fangy/Desktop/merger --output_dir /mnt/c/Users/fangy/Desktop/merger/restoration --visualize
 
 python sinogram_reconstruction.py --sinogram_dir "C:\Users\fangy\Desktop\merger" --output_dir "C:\Users\fangy\Desktop\merger\restoration" --visualize
+
+python sinogram_reconstruction.py --sinogram_dir /mnt/c/Users/fangy/Desktop/merger --output_dir /mnt/c/Users/fangy/Desktop/merger/restoration --visualize

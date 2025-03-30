@@ -28,12 +28,132 @@ from datetime import datetime
 
 from pytomography.io.PET import gate
 
-# Import our enhanced visualization functions
-from enhanced_visualization import (
-    visualize_sinogram_multislice,
-    visualize_sinogram_multi_perspective,
-    compare_sinograms
-)
+# 从generate_reconstruct.py导入可视化函数
+try:
+    from generate_reconstruct import visualize_sinogram
+except ImportError:
+    # 如果导入失败，则使用自定义版本
+    def visualize_sinogram(sinogram, output_path, title="Sinogram Visualization", image_filename=None):
+        """
+        Create detailed visualizations for a single sinogram.
+        
+        Args:
+            sinogram: The sinogram data (tensor or numpy array)
+            output_path: Path to save the visualization
+            title: Title for the visualization
+            image_filename: Original image filename for reference
+        """
+        # 确保在使用非交互式后端
+        matplotlib.use('Agg')
+        
+        try:
+            # 确保sinogram是numpy数组
+            if torch.is_tensor(sinogram):
+                sinogram_np = sinogram.cpu().numpy()
+            else:
+                sinogram_np = sinogram
+            
+            sinogram_shape = sinogram_np.shape
+            print(f"Sinogram shape: {sinogram_shape}")
+            
+            # 创建单切片视图 - 第一角度的前42个切片
+            fig, ax = plt.subplots(figsize=(10, 6))
+            slice_idx = min(42, sinogram_shape[2])
+            im = ax.imshow(sinogram_np[0, :, :slice_idx], cmap='magma')
+            
+            # 设置标题和坐标轴
+            if image_filename:
+                ax.set_title(f"{title} ({image_filename})")
+            else:
+                ax.set_title(title)
+            
+            ax.axis('off')
+            fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+            
+            # 保存图像
+            plt.tight_layout()
+            plt.savefig(output_path, dpi=300)
+            plt.close(fig)
+            print(f"  -> Saved sinogram visualization to {output_path}")
+            
+        except Exception as e:
+            print(f"Warning: Failed to create sinogram visualization: {e}")
+            import traceback
+            traceback.print_exc()
+
+# 创建多切片正弦图可视化
+def visualize_sinogram_multislice(sinogram, output_path, title="Sinogram Multislice", num_slices=6, image_filename=None):
+    """
+    Create a multi-slice view of a sinogram with slices evenly distributed through the volume.
+    
+    Args:
+        sinogram: The sinogram data (tensor or numpy array)
+        output_path: Path to save the visualization
+        title: Title for the visualization
+        num_slices: Number of slices to display
+        image_filename: Original image filename for reference
+    """
+    # 确保使用非交互式后端
+    matplotlib.use('Agg')
+    
+    try:
+        # 确保sinogram是numpy数组
+        if torch.is_tensor(sinogram):
+            sinogram_np = sinogram.cpu().numpy()
+        else:
+            sinogram_np = sinogram
+        
+        # 获取形状信息
+        sinogram_shape = sinogram_np.shape
+        print(f"Generating multislice visualization for sinogram of shape {sinogram_shape}")
+        
+        # 计算要显示的切片
+        depth = min(42, sinogram_shape[2])  # 使用前42个切片，如果更少则使用全部
+        if num_slices > depth:
+            num_slices = depth
+            print(f"Adjusting number of slices to {num_slices} (maximum available)")
+            
+        # 选择均匀分布的切片索引
+        slice_indices = np.linspace(0, depth-1, num_slices, dtype=int)
+        
+        # 创建绘图网格
+        rows = (num_slices + 2) // 3  # 向上取整，确保足够的行
+        cols = min(3, num_slices)  # 每行最多3个图
+        
+        fig, axs = plt.subplots(rows, cols, figsize=(15, 4 * rows))
+        if rows == 1 and cols == 1:
+            axs = np.array([axs])  # 确保axs是数组
+        else:
+            axs = axs.flatten()
+        
+        # 绘制每个切片
+        for i, slice_idx in enumerate(slice_indices):
+            if i < len(axs):
+                im = axs[i].imshow(sinogram_np[:, :, slice_idx], cmap='magma', aspect='auto')
+                axs[i].set_title(f'Ring Slice {slice_idx}')
+                axs[i].set_xlabel('Radial Position')
+                axs[i].set_ylabel('Angle')
+        
+        # 隐藏任何未使用的子图
+        for i in range(num_slices, len(axs)):
+            axs[i].set_visible(False)
+        
+        # 添加整体标题
+        if image_filename:
+            fig.suptitle(f"{title} ({image_filename})", fontsize=16)
+        else:
+            fig.suptitle(title, fontsize=16)
+        
+        # 保存图像
+        plt.tight_layout(rect=[0, 0, 1, 0.95])  # 为顶部标题留出空间
+        plt.savefig(output_path, dpi=300)
+        plt.close(fig)
+        print(f"  -> Saved multislice sinogram visualization to {output_path}")
+        
+    except Exception as e:
+        print(f"Warning: Failed to create multislice visualization: {e}")
+        import traceback
+        traceback.print_exc()
 
 # PET scanner configuration (from main.py)
 info = {
@@ -205,8 +325,6 @@ def filter_listmode_data(events, missing_ids):
         return events[valid_mask]
     else:
         raise ValueError("Unable to filter events: unsupported data format")
-    
-
 
 def load_complete_sinogram(sinogram_dir, index, num_events):
     """
@@ -403,7 +521,6 @@ def process_and_compare_sinograms_background(complete_sinogram, incomplete_sinog
     thread.start()
     return thread
 
-
 def process_listmode_file(input_file, output_dir, complete_sinogram_dir, log_dir, missing_ids, num_events, vis_level=2):
     """
     Process a single listmode file: filter it and generate a sinogram.
@@ -496,9 +613,11 @@ def process_listmode_file(input_file, output_dir, complete_sinogram_dir, log_dir
     # Set up output directories
     incomplete_lm_dir = os.path.join(output_dir, 'listmode_incomplete')
     incomplete_sinogram_dir = os.path.join(output_dir, 'sinogram_incomplete')
+    vis_dir = os.path.join(log_dir, "visualizations")
     
     os.makedirs(incomplete_lm_dir, exist_ok=True)
     os.makedirs(incomplete_sinogram_dir, exist_ok=True)
+    os.makedirs(vis_dir, exist_ok=True)
     
     # Save filtered listmode data in background
     out_lm_path = os.path.join(incomplete_lm_dir, f"incomplete_index{index}_num{num_events}.npz")
@@ -539,29 +658,41 @@ def process_listmode_file(input_file, output_dir, complete_sinogram_dir, log_dir
         np.save(out_sinogram_path, incomplete_sinogram.numpy().astype(np.float32))
         print(f"Saved incomplete sinogram to {out_sinogram_path}")
         
+        # 创建不完整正弦图可视化
+        if vis_level >= 1:
+            # 1. 标准单视图可视化 (类似于generate_reconstruct.py中的版本)
+            standard_vis_path = os.path.join(vis_dir, f"sinogram_{index}.pdf")
+            visualize_sinogram(
+                sinogram=incomplete_sinogram,
+                output_path=standard_vis_path,
+                title="Incomplete Ring Sinogram",
+                image_filename=f"3d_image_{index}.npy"
+            )
+            
+            # 2. 多切片可视化
+            multislice_vis_path = os.path.join(vis_dir, f"sinogram_multislice_3d_image_{index}.npy.pdf")
+            visualize_sinogram_multislice(
+                sinogram=incomplete_sinogram,
+                output_path=multislice_vis_path,
+                title="Incomplete Ring Sinogram Multislice",
+                num_slices=6,
+                image_filename=f"3d_image_{index}.npy"
+            )
+        
         # 尝试加载对应的完整环正弦图进行比较
         complete_sinogram = load_complete_sinogram(complete_sinogram_dir, index, num_events)
         
-        # 如果找到完整环正弦图，在后台线程中进行比较可视化
-        if complete_sinogram is not None and vis_level >= 1:
+        # 如果找到完整环正弦图，创建可视化对比
+        if complete_sinogram is not None and vis_level >= 2:
             print("Found matching complete sinogram, generating comparison...")
             comparison_thread = process_and_compare_sinograms_background(
                 complete_sinogram=complete_sinogram,
-                incomplete_sinogram=incomplete_sinogram.numpy(),
+                incomplete_sinogram=incomplete_sinogram,
                 output_dir=output_dir,
                 log_dir=log_dir,
                 image_index=index
             )
-        else:
-            print("No matching complete sinogram found for comparison.")
-            # 即使没有完整环数据，也为不完整环数据单独创建可视化
-            if vis_level >= 1:
-                visualize_sinogram_multislice(
-                    sinogram=incomplete_sinogram.numpy(),
-                    output_path=os.path.join(log_dir, f"incomplete_sinogram_index{index}.png"),
-                    title=f"Incomplete Ring Sinogram (Index {index})",
-                    num_slices=6
-                )
+        
     except Exception as e:
         print(f"Error generating sinogram: {e}")
         import traceback
@@ -570,6 +701,7 @@ def process_listmode_file(input_file, output_dir, complete_sinogram_dir, log_dir
     # 等待后台保存线程完成
     save_thread.join()
     print(f"Completed processing index {index} in {time.time() - start_time:.2f} seconds")
+
 def main():
     parser = argparse.ArgumentParser(description='Convert complete listmode data to incomplete ring data')
     parser.add_argument('--input_dir', type=str, required=True, 
@@ -676,6 +808,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-

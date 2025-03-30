@@ -8,3 +8,13 @@ python listmode_to_incomplete.py \
 --missing_start2 210 --missing_end2 270
 
 
+python listmode_to_incomplete.py \
+--input_dir /mnt/d/fyq/sinogram/reconstruction_npy_full_test/2000000000/listmode \
+--output_dir /mnt/d/fyq/sinogram/reconstruction_npy_full_test/2000000000/listmode_i \
+--sinogram_dir /mnt/d/fyq/sinogram/reconstruction_npy_full_test/2000000000/sinogram_i \
+--num_events 2000000000 \
+--visualize \
+--missing_start1 30 --missing_end1 90 \
+--missing_start2 210 --missing_end2 270
+
+

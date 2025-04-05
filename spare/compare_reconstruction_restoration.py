@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from skimage.metrics import structural_similarity as ssim
 from skimage.metrics import peak_signal_noise_ratio as psnr
 
-i = 6
+i = 9
 
 # Paths to the images.
 orig_path = rf"C:\Users\fangy\Desktop\reconstructed\reconstructed_index{i}_num2000000000.npy"

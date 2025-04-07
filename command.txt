@@ -14,4 +14,4 @@ python sinogram_reconstruction.py --sinogram_dir /mnt/c/Users/fangy/Desktop/merg
 
 python sinogram_reconstruction.py --sinogram_dir "C:\Users\fangy\Desktop\merger" --output_dir "C:\Users\fangy\Desktop\merger\restoration" --visualize
 
-python sinogram_reconstruction.py --sinogram_dir /mnt/d/fyq/sinogram/2e9div_smooth/merger/20250327_182411 --output_dir /mnt/d/fyq/sinogram/2e9div_smooth/restoration/20250327_182411 --visualize
+python sinogram_reconstruction.py --sinogram_dir /mnt/d/fyq/sinogram/log/cv_results/all_prediction_merged --output_dir /mnt/d/fyq/sinogram/2e9div_smooth/restoration/20250327_182411 --visualize

@@ -11,7 +11,7 @@ recon_path = rf"C:\Users\fangy\Desktop\20250327_182411\reconstructed_from_sinogr
 
 # Load the images.
 orig_image = np.load(orig_path)
-recon_image = np.load(recon_path).transpose(2, 1, 0)
+recon_image = np.load(recon_path)
 
 print(orig_image.max(), orig_image.min())
 print(recon_image.max(), recon_image.min())

@@ -297,7 +297,7 @@ def main():
         )
         
         # Save result
-        np.save(output_path, result_3d)
+        np.save(output_path, result_3d.transpose(2, 1, 0))
         
         # Create visualization if requested
         if args.visualize:

@@ -206,7 +206,7 @@ def remove_outliers_iteratively(image: np.ndarray,
         
         # Inpaint the outliers with a local-mean approach (3x3x3).
         patched = inpaint_with_local_mean(patched, combined_mask)
-        patched = (patched - patched.min()) / (patched.max() - patched.min())
+        patched = (patched - patched.min()) / (patched.max() - patched.min() + 2e-8)
     return patched
 
 @numba.njit

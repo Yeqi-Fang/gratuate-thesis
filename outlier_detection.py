@@ -207,6 +207,9 @@ def remove_outliers_iteratively(image: np.ndarray,
         # Inpaint the outliers with a local-mean approach (3x3x3).
         patched = inpaint_with_local_mean(patched, combined_mask)
         patched = (patched - patched.min()) / (patched.max() - patched.min() + 2e-8)
+        # check nan and inf and raise error
+        if np.isnan(patched).any() or np.isinf(patched).any():
+            raise ValueError("Inpainting resulted in NaN or Inf values.")
     return patched
 
 @numba.njit
@@ -252,3 +255,32 @@ def inpaint_with_local_mean(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
         image[z, y, x] = replacements[i]
     
     return image
+
+
+
+
+
+if __name__ == "__main__":
+    import os
+    # Example usage:
+    # image = np.random.rand(100, 100, 100)  # Replace with your actual image
+    # outliers = combined_outlier_detection(image)
+    # print("Detected outliers:", np.sum(outliers))
+    
+    input_dir = r"C:\Users\fangy\Desktop\all_prediction_merged_reconstructed\all_prediction_merged_reconstructed"
+    output_dir = r"C:\Users\fangy\Desktop\all_prediction_merged_reconstructed\all_prediction_merged_reconstructed_rm"
+    
+    for filename in os.listdir(input_dir):
+        if filename.endswith('.npy'):
+            input_path = os.path.join(input_dir, filename)
+            output_path = os.path.join(output_dir, filename)
+            
+            # Load the array
+            image = np.load(input_path)
+            
+            # Remove outliers
+            patched_image = remove_outliers_iteratively(image)
+            
+            # Save the patched image
+            np.save(output_path, patched_image)
+            print(f"Processed {filename} and saved to {output_path}")

@@ -28,7 +28,7 @@ import re
             
 #             os.rename(os.path.join(test_folder, i), os.path.join(output_dir, new_name))
             
-base = r"C:\Users\fangy\Desktop\all_prediction_merged_reconstructed\all_prediction_merged_reconstructed_padded_1e-8"
+base = r"C:\Users\fangy\Desktop\all_prediction_merged_reconstructed\all_prediction_merged_reconstructed_rm_padded_1e-8"
 
 for i in os.listdir(base):
     # print(i)

@@ -54,10 +54,10 @@ def pad_npy_files(input_dir, output_dir=None, overwrite=False):
     print(f"Processing complete. Padded files saved to {output_dir}")
 
 # Set the input directory
-input_dir = r"C:\Users\fangy\Desktop\all_prediction_merged_reconstructed\all_prediction_merged_reconstructed"
+input_dir = r"C:\Users\fangy\Desktop\all_prediction_merged_reconstructed\all_prediction_merged_reconstructed_rm"
 
 # Specify the output directory or set to None to use a "padded" subfolder
-output_dir = r"C:\Users\fangy\Desktop\all_prediction_merged_reconstructed\all_prediction_merged_reconstructed_padded_1e-8"  # You can change this to a specific path if needed
+output_dir = r"C:\Users\fangy\Desktop\all_prediction_merged_reconstructed\all_prediction_merged_reconstructed_rm_padded_1e-8"  # You can change this to a specific path if needed
 
 # Set overwrite to False to create new files (safer option)
 overwrite = False

@@ -11,11 +11,11 @@ def convert_npy_to_mat():
     each with shape [1, 256, 128].
     """
     # Define the paths to the two folders
-    folder1 = r'C:\Users\fangy\Desktop\all_prediction_merged_reconstructed\all_prediction_merged_reconstructed_padded_1e-8'
-    folder2 = r'C:\Users\fangy\Desktop\reconstructed_padded_1e-8'
+    folder1 = r"C:\Users\fangy\Desktop\all_prediction_merged_reconstructed\all_prediction_merged_reconstructed_rm_padded_1e-8_rotated"
+    folder2 = r'C:\Users\fangy\Desktop\reconstructed_rm_padded_1e-8'
 
     # Create an output folder for .mat files if it doesn't exist
-    output_folder = r'C:\Users\fangy\Desktop\converted_mat_files_1e-8'
+    output_folder = r'C:\Users\fangy\Desktop\converted_mat_files_rm_1e-8'
     os.makedirs(output_folder, exist_ok=True)
 
     # Process all .npy files in the first folder

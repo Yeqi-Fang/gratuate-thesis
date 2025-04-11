@@ -1,6 +1,6 @@
 import skimage
 
-path = r"C:\Users\fangy\Desktop\converted_mat_files_rm_1e-8\test\test_26_71.mat"
+path = r"C:\Users\fangy\Desktop\converted_mat_files_rm_1e-8_rotated\test\test_26_55.mat"
 
 # Load the .mat file
 import scipy.io as sio

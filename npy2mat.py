@@ -17,7 +17,7 @@ def convert_npy_to_mat():
     # Create an output folder for .mat files if it doesn't exist
     output_folder = r'C:\Users\fangy\Desktop\converted_mat_files_rm_1e-8'
     os.makedirs(output_folder, exist_ok=True)
-
+    
     # Process all .npy files in the first folder
     npy_files = [f for f in os.listdir(folder1) if f.endswith('.npy')]
     total_files = len(npy_files)
